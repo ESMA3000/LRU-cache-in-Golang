@@ -1,0 +1,154 @@
+package src
+
+import (
+	"fmt"
+)
+
+type Node struct {
+	key   string
+	value any
+	next  *Node
+	prev  *Node
+}
+
+type LRUCache map[string]*Node
+
+func newNode(key string, value any) *Node {
+	return &Node{
+		key:   key,
+		value: value,
+		next:  nil,
+		prev:  nil,
+	}
+}
+
+func InitLRU(capacity int) LRUCache {
+	cacheMap := make(map[string]*Node, capacity)
+	return cacheMap
+}
+
+func (c LRUCache) findHead() *Node {
+	if len(c) == 0 {
+		return nil
+	}
+
+	for _, node := range c {
+		if node.prev == nil && node.next != nil {
+			return node
+		}
+	}
+
+	if len(c) == 1 {
+		for _, node := range c {
+			return node
+		}
+	}
+
+	for _, node := range c {
+		node.prev = nil
+		return node
+	}
+
+	return nil
+}
+
+func (c LRUCache) findTail() *Node {
+	for _, node := range c {
+		if node.next == nil {
+			return node
+		}
+	}
+	return nil
+}
+
+func (c LRUCache) setHead(node *Node) {
+
+	currHead := c.findHead()
+	if len(c) == 1 {
+		if currHead != node {
+			node.next = currHead
+			currHead.prev = node
+			node.prev = nil
+		}
+		return
+	}
+
+	if currHead == node {
+		return
+	}
+
+	if node.prev != nil {
+		node.prev.next = node.next
+	}
+	if node.next != nil {
+		node.next.prev = node.prev
+	}
+
+	node.prev = nil
+	node.next = currHead
+	currHead.prev = node
+}
+
+func (c LRUCache) removeTail() {
+	currTail := c.findTail()
+	newTail := currTail.prev
+	if newTail != nil {
+		newTail.next = nil
+	}
+	c.removeNode(currTail)
+}
+
+func (c LRUCache) addNode(key string, value any) {
+	c[key] = newNode(key, value)
+	c.setHead(c[key])
+
+	if len(c) > 10 {
+		c.removeTail()
+	}
+}
+
+func (c LRUCache) removeNode(node *Node) {
+	delete(c, node.key)
+}
+
+func (c LRUCache) GetNode(key string) *Node {
+	if node, ok := c[key]; ok {
+		c.setHead(node)
+		return node
+	}
+	return nil
+}
+
+func (c LRUCache) Get(key string) any {
+	if node, ok := c[key]; ok {
+		c.setHead(node)
+		return node.value
+	}
+	return nil
+}
+
+func (c LRUCache) Put(key string, value any) {
+	if node, ok := c[key]; ok {
+		node.value = value
+	} else {
+		c.addNode(key, value)
+	}
+}
+
+func (c LRUCache) Eject(key string) {
+	if node, ok := c[key]; ok {
+		c.removeNode(node)
+	}
+}
+
+func (c LRUCache) Clear() {
+	for key := range c {
+		delete(c, key)
+	}
+}
+
+func (c LRUCache) Print() {
+	for _, node := range c {
+		fmt.Printf("Key: %s, Value: %v\n", node.key, node.value)
+	}
+}
