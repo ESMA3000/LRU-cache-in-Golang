@@ -11,7 +11,7 @@ import (
 func Cmdl() {
 	var capacity int
 	scanner := bufio.NewScanner(os.Stdin)
-	fmt.Println("LRU Cache Terminal")
+	fmt.Println("LRU Cache")
 	for {
 		fmt.Print("Enter the size of the cache: ")
 		scanner.Scan()
@@ -22,7 +22,11 @@ func Cmdl() {
 			continue
 		}
 		if parsedCapacity <= 0 {
-			fmt.Println("Capacity must be positive. Please try again.")
+			fmt.Println("Capacity must be non-negative. Please try again.")
+			continue
+		}
+		if parsedCapacity > 256 {
+			fmt.Println("Capacity must be less than or equal to 256. Please try again.")
 			continue
 		}
 		capacity = parsedCapacity
@@ -30,7 +34,7 @@ func Cmdl() {
 	}
 	cache := InitLRU(capacity)
 
-	fmt.Println("Commands: put <key> <value>, get <key>, print, quit")
+	fmt.Println("Commands: put <key> <value>, get <key>, eject <key>, print, quit")
 	for {
 		fmt.Print("> ")
 		scanner.Scan()
@@ -60,6 +64,13 @@ func Cmdl() {
 			} else {
 				fmt.Println("Key not found")
 			}
+		case "eject":
+			if len(args) != 2 {
+				fmt.Println("Usage: eject <key>")
+				continue
+			}
+			cache.Eject(args[1])
+			fmt.Println("Ejected from cache")
 
 		case "print":
 			cache.Print()
@@ -67,6 +78,9 @@ func Cmdl() {
 		case "clear":
 			cache.Clear()
 			fmt.Println("Cache cleared")
+
+		case "help":
+			fmt.Println("Available commands: put <key> <value>, get <key>, eject <key>, print, clear, quit")
 
 		case "quit":
 			return
