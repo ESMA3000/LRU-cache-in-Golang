@@ -11,7 +11,10 @@ type Node struct {
 	prev  *Node
 }
 
-type LRUCache map[string]*Node
+type LRUCache struct {
+	capacity int
+	nodes    map[string]*Node
+}
 
 func newNode(key string, value any) *Node {
 	return &Node{
@@ -23,28 +26,30 @@ func newNode(key string, value any) *Node {
 }
 
 func InitLRU(capacity int) LRUCache {
-	cacheMap := make(map[string]*Node, capacity)
-	return cacheMap
+	return LRUCache{
+		capacity: capacity,
+		nodes:    make(map[string]*Node, capacity),
+	}
 }
 
 func (c LRUCache) findHead() *Node {
-	if len(c) == 0 {
+	if len(c.nodes) == 0 {
 		return nil
 	}
 
-	for _, node := range c {
+	for _, node := range c.nodes {
 		if node.prev == nil && node.next != nil {
 			return node
 		}
 	}
 
-	if len(c) == 1 {
-		for _, node := range c {
+	if len(c.nodes) == 1 {
+		for _, node := range c.nodes {
 			return node
 		}
 	}
 
-	for _, node := range c {
+	for _, node := range c.nodes {
 		node.prev = nil
 		return node
 	}
@@ -53,7 +58,7 @@ func (c LRUCache) findHead() *Node {
 }
 
 func (c LRUCache) findTail() *Node {
-	for _, node := range c {
+	for _, node := range c.nodes {
 		if node.next == nil {
 			return node
 		}
@@ -64,7 +69,7 @@ func (c LRUCache) findTail() *Node {
 func (c LRUCache) setHead(node *Node) {
 
 	currHead := c.findHead()
-	if len(c) == 1 {
+	if len(c.nodes) == 1 {
 		if currHead != node {
 			node.next = currHead
 			currHead.prev = node
@@ -99,20 +104,20 @@ func (c LRUCache) removeTail() {
 }
 
 func (c LRUCache) addNode(key string, value any) {
-	c[key] = newNode(key, value)
-	c.setHead(c[key])
+	c.nodes[key] = newNode(key, value)
+	c.setHead(c.nodes[key])
 
-	if len(c) > 10 {
+	if len(c.nodes) > c.capacity {
 		c.removeTail()
 	}
 }
 
 func (c LRUCache) removeNode(node *Node) {
-	delete(c, node.key)
+	delete(c.nodes, node.key)
 }
 
 func (c LRUCache) GetNode(key string) *Node {
-	if node, ok := c[key]; ok {
+	if node, ok := c.nodes[key]; ok {
 		c.setHead(node)
 		return node
 	}
@@ -120,7 +125,7 @@ func (c LRUCache) GetNode(key string) *Node {
 }
 
 func (c LRUCache) Get(key string) any {
-	if node, ok := c[key]; ok {
+	if node, ok := c.nodes[key]; ok {
 		c.setHead(node)
 		return node.value
 	}
@@ -128,7 +133,7 @@ func (c LRUCache) Get(key string) any {
 }
 
 func (c LRUCache) Put(key string, value any) {
-	if node, ok := c[key]; ok {
+	if node, ok := c.nodes[key]; ok {
 		node.value = value
 	} else {
 		c.addNode(key, value)
@@ -136,19 +141,19 @@ func (c LRUCache) Put(key string, value any) {
 }
 
 func (c LRUCache) Eject(key string) {
-	if node, ok := c[key]; ok {
+	if node, ok := c.nodes[key]; ok {
 		c.removeNode(node)
 	}
 }
 
 func (c LRUCache) Clear() {
-	for key := range c {
-		delete(c, key)
+	for key := range c.nodes {
+		delete(c.nodes, key)
 	}
 }
 
 func (c LRUCache) Print() {
-	for _, node := range c {
+	for _, node := range c.nodes {
 		fmt.Printf("Key: %s, Value: %v\n", node.key, node.value)
 	}
 }
