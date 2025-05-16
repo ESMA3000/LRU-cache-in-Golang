@@ -1,6 +1,6 @@
 # LRU Cache Implementation in Go
 
-A flexible Least Recently Used (LRU) cache implementation with both CLI and TCP server interfaces.
+A Least Recently Used (LRU) cache implementation with both CLI and TCP server interfaces.
 
 ## Usage
 
@@ -28,7 +28,7 @@ nc localhost 7333
 - `-port`: Port for TCP server (default: `7333`)
 - `-capacity`: Cache capacity (default: `16`, max: `256`)
 
-### Available CLI commands:
+### Available commands:
 
 - `PUT/SET <key> <value>`: Add or update a key-value pair
 - `GET <key>`: Retrieve a value by key
