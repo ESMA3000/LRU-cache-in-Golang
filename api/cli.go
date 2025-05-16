@@ -1,39 +1,18 @@
-package src
+package api
 
 import (
 	"bufio"
 	"fmt"
+	"lru/src"
 	"os"
-	"strconv"
 	"strings"
 )
 
-func Cmdl() {
-	var capacity int
+func Cli(capacity int) {
 	scanner := bufio.NewScanner(os.Stdin)
-	fmt.Println("LRU Cache")
-	for {
-		fmt.Print("Enter the size of the cache: ")
-		scanner.Scan()
-		input := scanner.Text()
-		parsedCapacity, err := strconv.Atoi(input)
-		if err != nil {
-			fmt.Println("Invalid capacity. Please enter a number.")
-			continue
-		}
-		if parsedCapacity <= 0 {
-			fmt.Println("Capacity must be non-negative. Please try again.")
-			continue
-		}
-		if parsedCapacity > 256 {
-			fmt.Println("Capacity must be less than or equal to 256. Please try again.")
-			continue
-		}
-		capacity = parsedCapacity
-		break
-	}
-	cache := InitLRU(capacity)
+	cache := src.InitLRU(capacity)
 
+	fmt.Println("LRU Cache CLI")
 	fmt.Println("Commands: put <key> <value>, get <key>, eject <key>, print, quit")
 	for {
 		fmt.Print("> ")
