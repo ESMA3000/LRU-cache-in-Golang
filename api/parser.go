@@ -18,7 +18,6 @@ func Parse(input string) (*Command, error) {
 		return nil, fmt.Errorf("empty command")
 	}
 
-	// Normalize command to uppercase for TCP/CLI compatibility
 	op := strings.ToUpper(args[0])
 	cmd := &Command{Operation: op}
 
@@ -70,8 +69,11 @@ func Execute(cache *src.LRUCache, cmd *Command) (string, error) {
 		return "OK", nil
 
 	case "PRINT":
-		cache.Print()
-		return "OK", nil
+		if output := cache.Print(); output == "" {
+			return "Cache is empty", nil
+		} else {
+			return output, nil
+		}
 
 	case "CLEAR":
 		cache.Clear()

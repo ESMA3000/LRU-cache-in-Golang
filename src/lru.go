@@ -2,6 +2,7 @@ package src
 
 import (
 	"fmt"
+	"strings"
 )
 
 type Node struct {
@@ -151,8 +152,11 @@ func (c LRUCache) Clear() {
 	}
 }
 
-func (c LRUCache) Print() {
+func (c LRUCache) Print() string {
+	var builder strings.Builder
 	for _, node := range c.nodes {
-		fmt.Printf("Key: %s, Value: %v\n", node.key, node.value)
+		builder.WriteString(fmt.Sprintf("Key: %s, Value: %v\n",
+			node.key, node.value))
 	}
+	return builder.String()
 }
