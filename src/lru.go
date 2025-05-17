@@ -67,8 +67,7 @@ func (c LRUCache) findTail() *Node {
 }
 
 func (c LRUCache) setHead(node *Node) {
-
-	currHead := c.findHead()
+	var currHead *Node = c.findHead()
 	if len(c.nodes) == 1 {
 		if currHead != node {
 			node.next = currHead
@@ -95,8 +94,8 @@ func (c LRUCache) setHead(node *Node) {
 }
 
 func (c LRUCache) removeTail() {
-	currTail := c.findTail()
-	newTail := currTail.prev
+	var currTail *Node = c.findTail()
+	var newTail *Node = currTail.prev
 	if newTail != nil {
 		newTail.next = nil
 	}

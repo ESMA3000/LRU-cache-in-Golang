@@ -11,7 +11,7 @@ func NewCacheManager() *CacheManager {
 }
 
 func (cm *CacheManager) CreateCache(name string, capacity int) {
-	cache := InitLRU(capacity)
+	var cache LRUCache = InitLRU(capacity)
 	cm.caches[name] = &cache
 }
 
@@ -30,7 +30,7 @@ func (cm *CacheManager) DeleteCache(name string) {
 }
 
 func (cm *CacheManager) ListCaches() []string {
-	names := make([]string, 0, len(cm.caches))
+	var names []string = make([]string, 0, len(cm.caches))
 	for name := range cm.caches {
 		names = append(names, name)
 	}
