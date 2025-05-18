@@ -6,7 +6,7 @@ import (
 )
 
 type Node struct {
-	key   string
+	key   uint64
 	value []byte
 	prev  *Node
 	next  *Node
@@ -16,10 +16,10 @@ type LRUMap struct {
 	capacity uint8
 	head     *Node
 	tail     *Node
-	nodes    map[string]*Node
+	nodes    map[uint64]*Node
 }
 
-func newNode(key string, value []byte) *Node {
+func newNode(key uint64, value []byte) *Node {
 	return &Node{
 		key:   key,
 		value: value,
@@ -28,12 +28,12 @@ func newNode(key string, value []byte) *Node {
 	}
 }
 
-func InitLRU(capacity uint8) LRUMap {
+func InitLRUMap(capacity uint8) LRUMap {
 	return LRUMap{
 		capacity: capacity,
 		head:     nil,
 		tail:     nil,
-		nodes:    make(map[string]*Node, capacity),
+		nodes:    make(map[uint64]*Node, capacity),
 	}
 }
 
@@ -67,7 +67,7 @@ func (c *LRUMap) removeTail() {
 	c.tail = newTail
 }
 
-func (c *LRUMap) addNode(key string, value []byte) {
+func (c *LRUMap) addNode(key uint64, value []byte) {
 	c.nodes[key] = newNode(key, value)
 	c.setHead(c.nodes[key])
 
@@ -80,7 +80,7 @@ func (c *LRUMap) removeNode(node *Node) {
 	delete(c.nodes, node.key)
 }
 
-func (c LRUMap) GetNode(key string) *Node {
+func (c LRUMap) GetNode(key uint64) *Node {
 	if node, ok := c.nodes[key]; ok {
 		c.setHead(node)
 		return node
@@ -88,7 +88,7 @@ func (c LRUMap) GetNode(key string) *Node {
 	return nil
 }
 
-func (c LRUMap) Get(key string) []byte {
+func (c LRUMap) Get(key uint64) []byte {
 	if node, ok := c.nodes[key]; ok {
 		c.setHead(node)
 		return node.value
@@ -96,7 +96,7 @@ func (c LRUMap) Get(key string) []byte {
 	return nil
 }
 
-func (c *LRUMap) Put(key string, value []byte) {
+func (c *LRUMap) Put(key uint64, value []byte) {
 	if node, ok := c.nodes[key]; ok {
 		node.value = value
 		c.setHead(node)
@@ -105,7 +105,7 @@ func (c *LRUMap) Put(key string, value []byte) {
 	}
 }
 
-func (c *LRUMap) Eject(key string) {
+func (c *LRUMap) Eject(key uint64) {
 	if node, ok := c.nodes[key]; ok {
 		c.removeNode(node)
 	}
@@ -118,10 +118,10 @@ func (c *LRUMap) Clear() {
 }
 
 func (c LRUMap) Print() string {
-	//c.PrintNodes()
+	c.PrintNodes()
 	var builder strings.Builder
 	for _, node := range c.nodes {
-		builder.WriteString(fmt.Sprintf("Key: %s, Value: %v\n",
+		builder.WriteString(fmt.Sprintf("Key: %d, Value: %v\n",
 			node.key, node.value))
 	}
 	return builder.String()

@@ -11,7 +11,7 @@ func NewCacheManager() *CacheManager {
 }
 
 func (cm *CacheManager) CreateCache(name string, capacity uint8) {
-	var cache LRUMap = InitLRU(capacity)
+	var cache LRUMap = InitLRUMap(capacity)
 	cm.caches[name] = &cache
 }
 

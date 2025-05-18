@@ -2,14 +2,22 @@ package api
 
 import (
 	"fmt"
+	"hash/fnv"
 	"lru/src"
 	"strings"
+	"unsafe"
 )
 
 type Command struct {
-	Operation string
-	Key       string
-	Value     string
+	operation string
+	key       uint64
+	value     []byte
+}
+
+func hashString(s string) uint64 {
+	h := fnv.New64a()
+	h.Write([]byte(s))
+	return h.Sum64()
 }
 
 func Parse(input string) (*Command, error) {
@@ -19,27 +27,27 @@ func Parse(input string) (*Command, error) {
 	}
 
 	op := strings.ToUpper(args[0])
-	cmd := &Command{Operation: op}
+	cmd := &Command{operation: op}
 
 	switch op {
 	case "PUT", "SET":
 		if len(args) != 3 {
 			return nil, fmt.Errorf("usage: PUT/SET <key> <value>")
 		}
-		cmd.Key = args[1]
-		cmd.Value = args[2]
+		cmd.key = hashString(args[1])
+		cmd.value = unsafe.Slice(unsafe.StringData(args[2]), len(args[2]))
 
 	case "GET":
 		if len(args) != 2 {
 			return nil, fmt.Errorf("usage: GET <key>")
 		}
-		cmd.Key = args[1]
+		cmd.key = hashString(args[1])
 
 	case "EJECT", "DEL":
 		if len(args) != 2 {
 			return nil, fmt.Errorf("usage: EJECT/DEL <key>")
 		}
-		cmd.Key = args[1]
+		cmd.key = hashString(args[1])
 
 	case "PRINT", "CLEAR", "QUIT", "HELP":
 		// Commands without arguments
@@ -53,19 +61,19 @@ func Parse(input string) (*Command, error) {
 }
 
 func Execute(cache *src.LRUMap, cmd *Command) (string, error) {
-	switch cmd.Operation {
+	switch cmd.operation {
 	case "PUT", "SET":
-		cache.Put(cmd.Key, []byte(cmd.Value))
+		cache.Put(cmd.key, cmd.value)
 		return "OK", nil
 
 	case "GET":
-		if value := cache.Get(cmd.Key); value != nil {
+		if value := cache.Get(cmd.key); value != nil {
 			return fmt.Sprintf("%v", value), nil
 		}
 		return "", fmt.Errorf("key not found")
 
 	case "EJECT", "DEL":
-		cache.Eject(cmd.Key)
+		cache.Eject(cmd.key)
 		return "OK", nil
 
 	case "PRINT":
@@ -83,5 +91,5 @@ func Execute(cache *src.LRUMap, cmd *Command) (string, error) {
 		return "Available commands: PUT/SET <key> <value>, GET <key>, EJECT/DEL <key>, PRINT, CLEAR, QUIT", nil
 	}
 
-	return "", fmt.Errorf("unhandled command: %s", cmd.Operation)
+	return "", fmt.Errorf("unhandled command: %s", cmd.operation)
 }

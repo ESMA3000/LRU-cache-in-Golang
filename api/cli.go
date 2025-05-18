@@ -22,7 +22,7 @@ func Cli(cache *src.LRUMap) {
 			continue
 		}
 
-		if cmd.Operation == "QUIT" || cmd.Operation == "quit" {
+		if cmd.operation == "QUIT" || cmd.operation == "quit" {
 			return
 		}
 

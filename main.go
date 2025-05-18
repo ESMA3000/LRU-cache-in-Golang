@@ -27,7 +27,7 @@ func main() {
 		fmt.Println("Buffer size must be between 16 and 1024 bytes.")
 		return
 	}
-	cache := src.InitLRU(uint8(*capacity))
+	cache := src.InitLRUMap(uint8(*capacity))
 	switch *only {
 	case "tcp":
 		api.ServerTCP(*port, uint16(*bufferSize), &cache)
