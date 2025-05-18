@@ -24,9 +24,10 @@ nc localhost 7333
 
 ## Command Line Arguments
 
-- `-api`: Interface to use (`tcp` or `cli`, default: `tcp`)
-- `-port`: Port for TCP server (default: `7333`)
-- `-capacity`: Cache capacity (default: `16`, max: `256`)
+- `-port`: TCP server port (default: "7333", range: 1024-65535)
+- `-capacity`: Cache capacity (default: 16, max: 256)
+- `-buffer`: TCP buffer size in bytes (default: 256, range: 16-1024)
+- `-only`: Run specific interface ("tcp" or "cli")
 
 ### Available commands:
 
@@ -43,7 +44,6 @@ nc localhost 7333
 - The cache uses a doubly-linked list to maintain access order
 - Most recent items are moved to the head of the list
 - Least recently used items are removed when capacity is reached
-- O(1) time complexity for all operations
 
 ## License
 

@@ -7,14 +7,12 @@ import (
 	"os"
 )
 
-func Cli(capacity uint8) {
+func Cli(cache *src.LRUCache) {
 	scanner := bufio.NewScanner(os.Stdin)
-	cache := src.InitLRU(capacity)
 
 	fmt.Println("LRU Cache CLI")
 	fmt.Println("Commands: put <key> <value>, get <key>, eject <key>, print, quit")
 	for {
-		fmt.Print("> ")
 		scanner.Scan()
 		var input string = scanner.Text()
 
@@ -28,7 +26,7 @@ func Cli(capacity uint8) {
 			return
 		}
 
-		result, err := Execute(&cache, cmd)
+		result, err := Execute(cache, cmd)
 		if err != nil {
 			fmt.Println("Error:", err)
 		} else {

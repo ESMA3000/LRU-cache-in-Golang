@@ -4,27 +4,39 @@ import (
 	"flag"
 	"fmt"
 	"lru/api"
+	"lru/src"
+	"strconv"
 )
 
 func main() {
 	port := flag.String("port", "7333", "Port to run the server on")
-	apiMode := flag.String("api", "tcp", "API to use (tcp or cli)")
-	capacity := flag.Int("capacity", 16, "Capacity of the cache (default: 16)")
+	capacity := flag.Int("capacity", 16, "Capacity of the cache")
+	bufferSize := flag.Int("buffer", 256, "Buffer size for TCP connections")
+	only := flag.String("only", "", "Run only either TCP server or CLI")
 	flag.Parse()
-	if *capacity <= 0 {
-		fmt.Println("Capacity must be non-negative.")
+	portNum, err := strconv.Atoi(*port)
+	if err != nil || portNum < 1024 || portNum > int(^uint16(0)) {
+		fmt.Println("Port must be a number between 1024 and 65535.")
 		return
 	}
-	if *capacity > 256 {
-		fmt.Println("Capacity must be less than or equal to 256.")
+	if *capacity <= 0 || *capacity > int(^uint8(0)) {
+		fmt.Println("Capacity must be non-negative and can not exceed UINT8_MAX (256)")
 		return
 	}
-	if *apiMode == "tcp" {
-		api.ServerTCP(*port, *capacity)
-	} else if *apiMode == "cli" {
-		api.Cli(*capacity)
-	} else {
-		fmt.Println("Invalid API. Use 'tcp' or 'cli'.")
+	if *bufferSize <= 16 || *bufferSize > 1024 {
+		fmt.Println("Buffer size must be between 16 and 1024 bytes.")
+		return
 	}
-
+	cache := src.InitLRU(uint8(*capacity))
+	switch *only {
+	case "tcp":
+		api.ServerTCP(*port, uint16(*bufferSize), &cache)
+		return
+	case "cli":
+		api.Cli(&cache)
+		return
+	default:
+		go api.ServerTCP(*port, uint16(*bufferSize), &cache)
+		api.Cli(&cache)
+	}
 }
