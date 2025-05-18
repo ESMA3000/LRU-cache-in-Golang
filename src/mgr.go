@@ -10,7 +10,7 @@ func NewCacheManager() *CacheManager {
 	}
 }
 
-func (cm *CacheManager) CreateCache(name string, capacity int) {
+func (cm *CacheManager) CreateCache(name string, capacity uint8) {
 	var cache LRUCache = InitLRU(capacity)
 	cm.caches[name] = &cache
 }

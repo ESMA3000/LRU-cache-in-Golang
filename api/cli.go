@@ -7,7 +7,7 @@ import (
 	"os"
 )
 
-func Cli(capacity int) {
+func Cli(capacity uint8) {
 	scanner := bufio.NewScanner(os.Stdin)
 	cache := src.InitLRU(capacity)
 

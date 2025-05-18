@@ -9,6 +9,7 @@ import (
 func handleConnection(conn net.Conn, cache *src.LRUCache) {
 	defer conn.Close()
 	buf := make([]byte, 1024)
+	conn.Write([]byte("Connected to lru cachemanager\r\n"))
 	for {
 		n, err := conn.Read(buf)
 		if err != nil {
@@ -31,7 +32,7 @@ func handleConnection(conn net.Conn, cache *src.LRUCache) {
 	}
 }
 
-func ServerTCP(port string, capacity int) {
+func ServerTCP(port string, capacity uint8) {
 	listener, err := net.Listen("tcp", ":"+port)
 	if err != nil {
 		fmt.Printf("Error starting listener: %v\n", err)

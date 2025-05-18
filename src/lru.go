@@ -7,17 +7,17 @@ import (
 
 type Node struct {
 	key   string
-	value any
+	value []byte
 	next  *Node
 	prev  *Node
 }
 
 type LRUCache struct {
-	capacity int
+	capacity uint8
 	nodes    map[string]*Node
 }
 
-func newNode(key string, value any) *Node {
+func newNode(key string, value []byte) *Node {
 	return &Node{
 		key:   key,
 		value: value,
@@ -26,7 +26,7 @@ func newNode(key string, value any) *Node {
 	}
 }
 
-func InitLRU(capacity int) LRUCache {
+func InitLRU(capacity uint8) LRUCache {
 	return LRUCache{
 		capacity: capacity,
 		nodes:    make(map[string]*Node, capacity),
@@ -103,11 +103,11 @@ func (c LRUCache) removeTail() {
 	c.removeNode(currTail)
 }
 
-func (c LRUCache) addNode(key string, value any) {
+func (c LRUCache) addNode(key string, value []byte) {
 	c.nodes[key] = newNode(key, value)
 	c.setHead(c.nodes[key])
 
-	if len(c.nodes) > c.capacity {
+	if uint8(len(c.nodes)) > c.capacity {
 		c.removeTail()
 	}
 }
@@ -124,7 +124,7 @@ func (c LRUCache) GetNode(key string) *Node {
 	return nil
 }
 
-func (c LRUCache) Get(key string) any {
+func (c LRUCache) Get(key string) []byte {
 	if node, ok := c.nodes[key]; ok {
 		c.setHead(node)
 		return node.value
@@ -132,7 +132,7 @@ func (c LRUCache) Get(key string) any {
 	return nil
 }
 
-func (c LRUCache) Put(key string, value any) {
+func (c LRUCache) Put(key string, value []byte) {
 	if node, ok := c.nodes[key]; ok {
 		node.value = value
 	} else {

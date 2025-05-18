@@ -55,7 +55,7 @@ func Parse(input string) (*Command, error) {
 func Execute(cache *src.LRUCache, cmd *Command) (string, error) {
 	switch cmd.Operation {
 	case "PUT", "SET":
-		cache.Put(cmd.Key, cmd.Value)
+		cache.Put(cmd.Key, []byte(cmd.Value))
 		return "OK", nil
 
 	case "GET":
