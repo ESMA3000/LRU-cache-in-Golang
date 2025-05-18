@@ -7,7 +7,7 @@ import (
 	"os"
 )
 
-func Cli(cache *src.LRUCache) {
+func Cli(cache *src.LRUMap) {
 	scanner := bufio.NewScanner(os.Stdin)
 
 	fmt.Println("LRU Cache CLI")

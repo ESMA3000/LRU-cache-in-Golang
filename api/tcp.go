@@ -9,7 +9,7 @@ import (
 
 const maxConnections = 256
 
-func handleConnection(conn net.Conn, bufferSize uint16, cache *src.LRUCache) {
+func handleConnection(conn net.Conn, bufferSize uint16, cache *src.LRUMap) {
 	defer conn.Close()
 	buf := make([]byte, bufferSize)
 	conn.Write([]byte("Connected to lru cachemanager\r\n"))
@@ -35,7 +35,7 @@ func handleConnection(conn net.Conn, bufferSize uint16, cache *src.LRUCache) {
 	}
 }
 
-func ServerTCP(port string, bufferSize uint16, cache *src.LRUCache) {
+func ServerTCP(port string, bufferSize uint16, cache *src.LRUMap) {
 	var activeConnections int32 = 0
 	listener, err := net.Listen("tcp", ":"+port)
 	if err != nil {

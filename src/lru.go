@@ -12,7 +12,7 @@ type Node struct {
 	next  *Node
 }
 
-type LRUCache struct {
+type LRUMap struct {
 	capacity uint8
 	head     *Node
 	tail     *Node
@@ -28,8 +28,8 @@ func newNode(key string, value []byte) *Node {
 	}
 }
 
-func InitLRU(capacity uint8) LRUCache {
-	return LRUCache{
+func InitLRU(capacity uint8) LRUMap {
+	return LRUMap{
 		capacity: capacity,
 		head:     nil,
 		tail:     nil,
@@ -37,13 +37,12 @@ func InitLRU(capacity uint8) LRUCache {
 	}
 }
 
-func (c *LRUCache) setHead(node *Node) {
+func (c *LRUMap) setHead(node *Node) {
 	if c.head == nil {
 		c.head = node
 		c.tail = node
 		return
 	}
-
 	if c.head == node {
 		return
 	}
@@ -61,14 +60,14 @@ func (c *LRUCache) setHead(node *Node) {
 	c.head = node
 }
 
-func (c *LRUCache) removeTail() {
+func (c *LRUMap) removeTail() {
 	var newTail *Node = c.tail.prev
 	newTail.next = nil
 	c.removeNode(c.tail)
 	c.tail = newTail
 }
 
-func (c *LRUCache) addNode(key string, value []byte) {
+func (c *LRUMap) addNode(key string, value []byte) {
 	c.nodes[key] = newNode(key, value)
 	c.setHead(c.nodes[key])
 
@@ -77,11 +76,11 @@ func (c *LRUCache) addNode(key string, value []byte) {
 	}
 }
 
-func (c *LRUCache) removeNode(node *Node) {
+func (c *LRUMap) removeNode(node *Node) {
 	delete(c.nodes, node.key)
 }
 
-func (c LRUCache) GetNode(key string) *Node {
+func (c LRUMap) GetNode(key string) *Node {
 	if node, ok := c.nodes[key]; ok {
 		c.setHead(node)
 		return node
@@ -89,7 +88,7 @@ func (c LRUCache) GetNode(key string) *Node {
 	return nil
 }
 
-func (c LRUCache) Get(key string) []byte {
+func (c LRUMap) Get(key string) []byte {
 	if node, ok := c.nodes[key]; ok {
 		c.setHead(node)
 		return node.value
@@ -97,7 +96,7 @@ func (c LRUCache) Get(key string) []byte {
 	return nil
 }
 
-func (c *LRUCache) Put(key string, value []byte) {
+func (c *LRUMap) Put(key string, value []byte) {
 	if node, ok := c.nodes[key]; ok {
 		node.value = value
 		c.setHead(node)
@@ -106,20 +105,20 @@ func (c *LRUCache) Put(key string, value []byte) {
 	}
 }
 
-func (c *LRUCache) Eject(key string) {
+func (c *LRUMap) Eject(key string) {
 	if node, ok := c.nodes[key]; ok {
 		c.removeNode(node)
 	}
 }
 
-func (c *LRUCache) Clear() {
+func (c *LRUMap) Clear() {
 	for key := range c.nodes {
 		delete(c.nodes, key)
 	}
 }
 
-func (c LRUCache) Print() string {
-	c.PrintNodes()
+func (c LRUMap) Print() string {
+	//c.PrintNodes()
 	var builder strings.Builder
 	for _, node := range c.nodes {
 		builder.WriteString(fmt.Sprintf("Key: %s, Value: %v\n",
@@ -128,7 +127,7 @@ func (c LRUCache) Print() string {
 	return builder.String()
 }
 
-func (c LRUCache) PrintNodes() {
+func (c LRUMap) PrintNodes() {
 	for _, node := range c.nodes {
 		fmt.Println(node)
 	}

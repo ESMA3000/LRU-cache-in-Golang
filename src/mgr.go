@@ -1,21 +1,21 @@
 package src
 
 type CacheManager struct {
-	caches map[string]*LRUCache
+	caches map[string]*LRUMap
 }
 
 func NewCacheManager() *CacheManager {
 	return &CacheManager{
-		caches: make(map[string]*LRUCache),
+		caches: make(map[string]*LRUMap),
 	}
 }
 
 func (cm *CacheManager) CreateCache(name string, capacity uint8) {
-	var cache LRUCache = InitLRU(capacity)
+	var cache LRUMap = InitLRU(capacity)
 	cm.caches[name] = &cache
 }
 
-func (cm *CacheManager) GetCache(name string) *LRUCache {
+func (cm *CacheManager) GetCache(name string) *LRUMap {
 	if cache, exists := cm.caches[name]; exists {
 		return cache
 	}

@@ -52,7 +52,7 @@ func Parse(input string) (*Command, error) {
 	return cmd, nil
 }
 
-func Execute(cache *src.LRUCache, cmd *Command) (string, error) {
+func Execute(cache *src.LRUMap, cmd *Command) (string, error) {
 	switch cmd.Operation {
 	case "PUT", "SET":
 		cache.Put(cmd.Key, []byte(cmd.Value))
