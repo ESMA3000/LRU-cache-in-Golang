@@ -3,7 +3,14 @@ package src
 import (
 	"fmt"
 	"strings"
+	"sync"
 )
+
+var nodePool = sync.Pool{
+	New: func() any {
+		return &Node{}
+	},
+}
 
 type Node struct {
 	key   uint64
@@ -20,12 +27,21 @@ type LRUMap struct {
 }
 
 func newNode(key uint64, value []byte) *Node {
-	return &Node{
-		key:   key,
-		value: value,
-		prev:  nil,
-		next:  nil,
-	}
+	node := nodePool.Get().(*Node)
+	node.key = key
+	node.value = value
+	node.prev = nil
+	node.next = nil
+	return node
+}
+
+func (c *LRUMap) removeNode(node *Node) {
+	delete(c.nodes, node.key)
+	node.key = 0
+	node.value = nil
+	node.prev = nil
+	node.next = nil
+	nodePool.Put(node)
 }
 
 func InitLRUMap(capacity uint8) LRUMap {
@@ -45,6 +61,9 @@ func (c *LRUMap) setHead(node *Node) {
 	}
 	if c.head == node {
 		return
+	}
+	if c.tail == node {
+		c.tail = node.prev
 	}
 
 	if node.prev != nil {
@@ -76,11 +95,7 @@ func (c *LRUMap) addNode(key uint64, value []byte) {
 	}
 }
 
-func (c *LRUMap) removeNode(node *Node) {
-	delete(c.nodes, node.key)
-}
-
-func (c LRUMap) GetNode(key uint64) *Node {
+func (c *LRUMap) GetNode(key uint64) *Node {
 	if node, ok := c.nodes[key]; ok {
 		c.setHead(node)
 		return node
@@ -88,7 +103,7 @@ func (c LRUMap) GetNode(key uint64) *Node {
 	return nil
 }
 
-func (c LRUMap) Get(key uint64) []byte {
+func (c *LRUMap) Get(key uint64) []byte {
 	if node, ok := c.nodes[key]; ok {
 		c.setHead(node)
 		return node.value
@@ -113,7 +128,7 @@ func (c *LRUMap) Eject(key uint64) {
 
 func (c *LRUMap) Clear() {
 	for key := range c.nodes {
-		delete(c.nodes, key)
+		c.removeNode(c.nodes[key])
 	}
 }
 
@@ -128,6 +143,7 @@ func (c LRUMap) Print() string {
 }
 
 func (c LRUMap) PrintNodes() {
+	fmt.Println(c.head, c.tail)
 	for _, node := range c.nodes {
 		fmt.Println(node)
 	}
