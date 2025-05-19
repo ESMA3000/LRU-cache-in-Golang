@@ -20,8 +20,8 @@ func hashString(s string) uint64 {
 	return h.Sum64()
 }
 
-func Parse(input string) (*Command, error) {
-	args := strings.Fields(input)
+func Parse(input []byte) (*Command, error) {
+	args := strings.Fields(string(input))
 	if len(args) == 0 {
 		return nil, fmt.Errorf("empty command")
 	}

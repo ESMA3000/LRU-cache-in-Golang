@@ -4,23 +4,37 @@ import (
 	"fmt"
 	"lru/src"
 	"net"
+	"sync"
 	"sync/atomic"
 )
 
 const maxConnections = 256
 
+var bufferPool sync.Pool
+
 func handleConnection(conn net.Conn, bufferSize uint16, cache *src.LRUMap) {
-	defer conn.Close()
-	buf := make([]byte, bufferSize)
+	if bufferPool.New == nil {
+		bufferPool.New = func() any {
+			b := make([]byte, bufferSize)
+			return &b
+		}
+	}
+	buf := bufferPool.Get().(*[]byte)
+	defer func() {
+		conn.Close()
+		bufferPool.Put(buf)
+	}()
+
 	conn.Write([]byte("Connected to lru cachemanager\r\n"))
 	for {
-		n, err := conn.Read(buf)
+		input := *buf
+		n, err := conn.Read(input)
 		if err != nil {
 			fmt.Printf("Connection closed by client\n")
 			break
 		}
 
-		cmd, err := Parse(string(buf[:n]))
+		cmd, err := Parse(input[:n])
 		if err != nil {
 			conn.Write(fmt.Appendf(nil, "ERR %s\r\n", err))
 			continue

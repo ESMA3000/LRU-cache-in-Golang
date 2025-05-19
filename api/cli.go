@@ -16,7 +16,7 @@ func Cli(cache *src.LRUMap) {
 		scanner.Scan()
 		var input string = scanner.Text()
 
-		cmd, err := Parse(input)
+		cmd, err := Parse([]byte(input))
 		if err != nil {
 			fmt.Println("Error:", err)
 			continue
