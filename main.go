@@ -30,13 +30,13 @@ func main() {
 	cache := src.InitLRUMap(uint8(*capacity))
 	switch *only {
 	case "tcp":
-		api.ServerTCP(*port, uint16(*bufferSize), &cache)
+		api.ServerTCP(*port, uint16(*bufferSize), cache)
 		return
 	case "cli":
-		api.Cli(&cache)
+		api.Cli(cache)
 		return
 	default:
-		go api.ServerTCP(*port, uint16(*bufferSize), &cache)
-		api.Cli(&cache)
+		go api.ServerTCP(*port, uint16(*bufferSize), cache)
+		api.Cli(cache)
 	}
 }

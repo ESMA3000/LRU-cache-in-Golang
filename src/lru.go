@@ -24,6 +24,7 @@ type LRUMap struct {
 	head     *Node
 	tail     *Node
 	nodes    map[uint64]*Node
+	mutex    sync.Mutex
 }
 
 func newNode(key uint64, value []byte) *Node {
@@ -44,8 +45,11 @@ func (c *LRUMap) removeNode(node *Node) {
 	nodePool.Put(node)
 }
 
-func InitLRUMap(capacity uint8) LRUMap {
-	return LRUMap{
+func InitLRUMap(capacity uint8) *LRUMap {
+	for range int(capacity) {
+		nodePool.Put(&Node{})
+	}
+	return &LRUMap{
 		capacity: capacity,
 		head:     nil,
 		tail:     nil,
@@ -90,12 +94,14 @@ func (c *LRUMap) addNode(key uint64, value []byte) {
 	c.nodes[key] = newNode(key, value)
 	c.setHead(c.nodes[key])
 
-	if c.Length() > c.capacity {
+	if uint8(len(c.nodes)) > c.capacity {
 		c.removeTail()
 	}
 }
 
 func (c *LRUMap) GetNode(key uint64) *Node {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
 	if node, ok := c.nodes[key]; ok {
 		c.setHead(node)
 		return node
@@ -104,6 +110,8 @@ func (c *LRUMap) GetNode(key uint64) *Node {
 }
 
 func (c *LRUMap) Get(key uint64) []byte {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
 	if node, ok := c.nodes[key]; ok {
 		c.setHead(node)
 		return node.value
@@ -112,6 +120,8 @@ func (c *LRUMap) Get(key uint64) []byte {
 }
 
 func (c *LRUMap) Put(key uint64, value []byte) {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
 	if node, ok := c.nodes[key]; ok {
 		node.value = value
 		c.setHead(node)
@@ -121,16 +131,22 @@ func (c *LRUMap) Put(key uint64, value []byte) {
 }
 
 func (c *LRUMap) Eject(key uint64) {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
 	if node, ok := c.nodes[key]; ok {
 		c.removeNode(node)
 	}
 }
 
 func (c *LRUMap) Length() uint8 {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
 	return uint8(len(c.nodes))
 }
 
 func (c *LRUMap) Clear() {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
 	for key := range c.nodes {
 		c.removeNode(c.nodes[key])
 	}
