@@ -41,7 +41,7 @@ jobs:
 
       # Step 5: Run tests
       - name: Run tests
-        run: go test -v ./...
+        run: go test -race -v ./...
 
       # Step 6: Build the Go project (optional)
       - name: Build
