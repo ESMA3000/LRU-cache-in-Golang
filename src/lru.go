@@ -90,7 +90,7 @@ func (c *LRUMap) addNode(key uint64, value []byte) {
 	c.nodes[key] = newNode(key, value)
 	c.setHead(c.nodes[key])
 
-	if uint8(len(c.nodes)) > c.capacity {
+	if c.Length() > c.capacity {
 		c.removeTail()
 	}
 }
@@ -124,6 +124,10 @@ func (c *LRUMap) Eject(key uint64) {
 	if node, ok := c.nodes[key]; ok {
 		c.removeNode(node)
 	}
+}
+
+func (c *LRUMap) Length() uint8 {
+	return uint8(len(c.nodes))
 }
 
 func (c *LRUMap) Clear() {
