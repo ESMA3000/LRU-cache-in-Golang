@@ -12,7 +12,7 @@ go run main.go
 
 Start the server:
 ```bash
-go run main.go -only tcp -port 7333 -capacity 16
+go run main.go -only tcp -port 7333 -buffer 256
 ```
 
 Connect using netcat or telnet:
@@ -25,21 +25,27 @@ nc localhost 7333
 - `-port`: TCP server port (default: "7333", range: 1024-65535)
 - `-buffer`: TCP buffer size in bytes (default: 256, range: 16-1024)
 - `-only`: Run specific interface ("tcp" or "cli")
-- `-capacity`: Cache capacity (default: 16, max: 256)
 
-### Available commands:
+### Available Commands
 
-- `PUT/SET <key> <value>`: Add or update a key-value pair
-- `GET <key>`: Retrieve a value by key
-- `EJECT/DEL <key>`: Remove a key-value pair
-- `PRINT`: Display all cache contents
-- `CLEAR`: Remove all entries
-- `QUIT`: Exit the program
+Cache Management:
+- `CREATE <cache_name> <capacity>`: Create a new cache with specified capacity
+- `DESTROY <cache_name>`: Remove a cache instance
+- `LIST`: Show all available caches
+
+Cache Operations:
+- `SET <cache_name> <key> <value>`: Add or update a key-value pair in specified cache
+- `GET <cache_name> <key>`: Retrieve a value by key from specified cache
+- `DEL <cache_name> <key>`: Remove a key-value pair from specified cache
+- `PRINT <cache_name>`: Display specified cache contents
+- `CLEAR <cache_name>`: Remove all entries from specified cache
+- `EXIT`: Exit the program
 - `HELP`: Show available commands
 
 ## Implementation Details
 
-- The cache uses a doubly-linked list to maintain access order
+- Multiple independent cache instances
+- Each cache uses a doubly-linked list to maintain access order
 - Most recent items are moved to the head of the list
 - Least recently used items are removed when capacity is reached
 
