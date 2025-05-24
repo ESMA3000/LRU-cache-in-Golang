@@ -174,3 +174,25 @@ func (m *LRUMap) PrintNodes() {
 		fmt.Println(node)
 	}
 }
+
+func (m *LRUMap) Iterator() []*Node {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+
+	var nodes = make([]*Node, m.capacity)
+	for node := m.head; node != nil; node = node.next {
+		nodes = append(nodes, node)
+	}
+	return nodes
+}
+
+func (m *LRUMap) ReverseIterator() []*Node {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+
+	var nodes = make([]*Node, m.capacity)
+	for node := m.tail; node != nil; node = node.prev {
+		nodes = append(nodes, node)
+	}
+	return nodes
+}
