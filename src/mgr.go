@@ -22,7 +22,7 @@ func (cm *CacheManager) GetCache(name string) *LRUMap {
 	return nil
 }
 
-func (cm *CacheManager) DeleteCache(name string) {
+func (cm *CacheManager) DestroyCache(name string) {
 	if cache, exists := cm.caches[name]; exists {
 		cache.Clear()
 		delete(cm.caches, name)

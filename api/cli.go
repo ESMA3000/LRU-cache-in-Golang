@@ -7,11 +7,9 @@ import (
 	"os"
 )
 
-func Cli(cache *src.LRUMap) {
+func Cli(mgr *src.CacheManager) {
 	scanner := bufio.NewScanner(os.Stdin)
-
-	fmt.Println("LRU Cache CLI")
-	fmt.Println("Commands: put <key> <value>, get <key>, eject <key>, print, quit")
+	fmt.Println("LRU Engine CLI")
 	for {
 		scanner.Scan()
 		var input string = scanner.Text()
@@ -22,11 +20,11 @@ func Cli(cache *src.LRUMap) {
 			continue
 		}
 
-		if cmd.operation == "QUIT" || cmd.operation == "quit" {
+		if cmd.operation == "EXIT" || cmd.operation == "exit" {
 			return
 		}
 
-		result, err := Execute(cache, cmd)
+		result, err := Execute(mgr, cmd)
 		if err != nil {
 			fmt.Println("Error:", err)
 		} else {

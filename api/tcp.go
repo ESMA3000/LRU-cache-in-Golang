@@ -12,7 +12,7 @@ const maxConnections = 256
 
 var bufferPool sync.Pool
 
-func handleConnection(conn net.Conn, bufferSize uint16, cache *src.LRUMap) {
+func handleConnection(conn net.Conn, bufferSize uint16, mgr *src.CacheManager) {
 	if bufferPool.New == nil {
 		bufferPool.New = func() any {
 			b := make([]byte, bufferSize)
@@ -40,7 +40,11 @@ func handleConnection(conn net.Conn, bufferSize uint16, cache *src.LRUMap) {
 			continue
 		}
 
-		result, err := Execute(cache, cmd)
+		if cmd.operation == Cmd_EXIT {
+			break
+		}
+
+		result, err := Execute(mgr, cmd)
 		if err != nil {
 			conn.Write(fmt.Appendf(nil, "ERR %s\r\n", err))
 		} else {
@@ -49,7 +53,7 @@ func handleConnection(conn net.Conn, bufferSize uint16, cache *src.LRUMap) {
 	}
 }
 
-func ServerTCP(port string, bufferSize uint16, cache *src.LRUMap) {
+func ServerTCP(port string, bufferSize uint16, mgr *src.CacheManager) {
 	var activeConnections int32 = 0
 	listener, err := net.Listen("tcp", ":"+port)
 	if err != nil {
@@ -74,7 +78,7 @@ func ServerTCP(port string, bufferSize uint16, cache *src.LRUMap) {
 		atomic.AddInt32(&activeConnections, 1)
 		fmt.Printf("New client connected (active: %d)\n", atomic.LoadInt32(&activeConnections))
 		go func() {
-			handleConnection(conn, bufferSize, cache)
+			handleConnection(conn, bufferSize, mgr)
 			atomic.AddInt32(&activeConnections, -1)
 		}()
 	}
