@@ -36,13 +36,22 @@ func newNode(key uint64, value []byte) *Node {
 	return node
 }
 
-func (c *LRUMap) removeNode(node *Node) {
-	delete(c.nodes, node.key)
-	node.key = 0
-	node.value = nil
-	node.prev = nil
-	node.next = nil
+func (m *LRUMap) removeNode(node *Node) {
+	if node == nil {
+		return
+	}
+	delete(m.nodes, node.key)
+	*node = Node{}
 	nodePool.Put(node)
+}
+
+func (m *LRUMap) unlinkNode(node *Node) {
+	if node.prev != nil {
+		node.prev.next = node.next
+	}
+	if node.next != nil {
+		node.next.prev = node.prev
+	}
 }
 
 func InitLRUMap(capacity uint8) *LRUMap {
@@ -51,120 +60,117 @@ func InitLRUMap(capacity uint8) *LRUMap {
 	}
 	return &LRUMap{
 		capacity: capacity,
-		head:     nil,
-		tail:     nil,
 		nodes:    make(map[uint64]*Node, capacity),
 	}
 }
 
-func (c *LRUMap) setHead(node *Node) {
-	if c.head == nil {
-		c.head = node
-		c.tail = node
+func (m *LRUMap) setHead(node *Node) {
+	if m.head == nil {
+		m.head = node
+		m.tail = node
+		return
+	} else if m.head == node || node == nil {
 		return
 	}
-	if c.head == node {
-		return
-	}
-	if c.tail == node {
-		c.tail = node.prev
+
+	if m.tail == node {
+		m.tail = node.prev
 	}
 
-	if node.prev != nil {
-		node.prev.next = node.next
-	}
-	if node.next != nil {
-		node.next.prev = node.prev
-	}
-
+	m.unlinkNode(node)
 	node.prev = nil
-	node.next = c.head
-	c.head.prev = node
-	c.head = node
+	node.next = m.head
+	m.head.prev = node
+	m.head = node
 }
 
-func (c *LRUMap) removeTail() {
-	var newTail *Node = c.tail.prev
-	newTail.next = nil
-	c.removeNode(c.tail)
-	c.tail = newTail
+func (m *LRUMap) removeTail() {
+	if m.tail == nil {
+		return
+	}
+	var newTail *Node = m.tail.prev
+	if newTail != nil {
+		newTail.next = nil
+	}
+	m.removeNode(m.tail)
+	m.tail = newTail
 }
 
-func (c *LRUMap) addNode(key uint64, value []byte) {
-	c.nodes[key] = newNode(key, value)
-	c.setHead(c.nodes[key])
+func (m *LRUMap) addNode(key uint64, value []byte) {
+	m.nodes[key] = newNode(key, value)
+	m.setHead(m.nodes[key])
 
-	if uint8(len(c.nodes)) > c.capacity {
-		c.removeTail()
+	if uint8(len(m.nodes)) > m.capacity {
+		m.removeTail()
 	}
 }
 
-func (c *LRUMap) GetNode(key uint64) *Node {
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
-	if node, ok := c.nodes[key]; ok {
-		c.setHead(node)
+func (m *LRUMap) GetNode(key uint64) *Node {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+	if node, ok := m.nodes[key]; ok {
+		m.setHead(node)
 		return node
 	}
 	return nil
 }
 
-func (c *LRUMap) Get(key uint64) []byte {
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
-	if node, ok := c.nodes[key]; ok {
-		c.setHead(node)
+func (m *LRUMap) Get(key uint64) []byte {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+	if node, ok := m.nodes[key]; ok {
+		m.setHead(node)
 		return node.value
 	}
 	return nil
 }
 
-func (c *LRUMap) Put(key uint64, value []byte) {
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
-	if node, ok := c.nodes[key]; ok {
+func (m *LRUMap) Put(key uint64, value []byte) {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+	if node, ok := m.nodes[key]; ok {
 		node.value = value
-		c.setHead(node)
+		m.setHead(node)
 	} else {
-		c.addNode(key, value)
+		m.addNode(key, value)
 	}
 }
 
-func (c *LRUMap) Eject(key uint64) {
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
-	if node, ok := c.nodes[key]; ok {
-		c.removeNode(node)
+func (m *LRUMap) Eject(key uint64) {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+	if node, ok := m.nodes[key]; ok {
+		m.removeNode(node)
 	}
 }
 
-func (c *LRUMap) Length() uint8 {
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
-	return uint8(len(c.nodes))
+func (m *LRUMap) Length() uint8 {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+	return uint8(len(m.nodes))
 }
 
-func (c *LRUMap) Clear() {
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
-	for key := range c.nodes {
-		c.removeNode(c.nodes[key])
+func (m *LRUMap) Clear() {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+	for key := range m.nodes {
+		m.removeNode(m.nodes[key])
 	}
 }
 
-func (c LRUMap) Print() string {
-	c.PrintNodes()
+func (m *LRUMap) Print() string {
+	m.PrintNodes()
 	var builder strings.Builder
-	for _, node := range c.nodes {
+	for _, node := range m.nodes {
 		builder.WriteString(fmt.Sprintf("Key: %d, Value: %v\n",
 			node.key, node.value))
 	}
 	return builder.String()
 }
 
-func (c LRUMap) PrintNodes() {
-	fmt.Println(c.head, c.tail)
-	for _, node := range c.nodes {
+func (m *LRUMap) PrintNodes() {
+	fmt.Println(m.head, m.tail)
+	for _, node := range m.nodes {
 		fmt.Println(node)
 	}
 }
