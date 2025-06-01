@@ -1,37 +1,66 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"lru/api"
 	"lru/src"
+	"os/signal"
 	"strconv"
+	"syscall"
 )
 
+type Config struct {
+	port       string
+	bufferSize int
+	only       string
+}
+
 func main() {
+	config := parseFlags()
+	if err := validateConfig(config); err != nil {
+		src.FatalError("Invalid configuration", err)
+	}
+	mgr := src.NewCacheManager()
+
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+
+	switch config.only {
+	case "tcp":
+		api.ServerTCP(config.port, uint16(config.bufferSize), mgr)
+	case "cli":
+		api.Cli(ctx, mgr)
+	default:
+		go api.ServerTCP(config.port, uint16(config.bufferSize), mgr)
+		api.Cli(ctx, mgr)
+	}
+
+	<-ctx.Done()
+	fmt.Println("Shutting down gracefully...")
+	mgr.ClearAllCaches()
+}
+
+func parseFlags() Config {
 	port := flag.String("port", "7333", "Port to run the server on")
 	bufferSize := flag.Int("buffer", 256, "Buffer size for TCP connections")
 	only := flag.String("only", "", "Run only either TCP server or CLI")
 	flag.Parse()
-	portNum, err := strconv.Atoi(*port)
+	return Config{
+		port:       *port,
+		bufferSize: *bufferSize,
+		only:       *only,
+	}
+}
+
+func validateConfig(config Config) error {
+	portNum, err := strconv.Atoi(config.port)
 	if err != nil || portNum < 1024 || portNum > int(^uint16(0)) {
-		fmt.Println("Port must be a number between 1024 and 65535.")
-		return
+		return fmt.Errorf("port must be a number between 1024 and 65535")
 	}
-	if *bufferSize <= 16 || *bufferSize > 1024 {
-		fmt.Println("Buffer size must be between 16 and 1024 bytes.")
-		return
+	if config.bufferSize <= 16 || config.bufferSize > 1024 {
+		return fmt.Errorf("buffer size must be between 16 and 1024 bytes")
 	}
-	mgr := src.NewCacheManager()
-	switch *only {
-	case "tcp":
-		api.ServerTCP(*port, uint16(*bufferSize), mgr)
-		return
-	case "cli":
-		api.Cli(mgr)
-		return
-	default:
-		go api.ServerTCP(*port, uint16(*bufferSize), mgr)
-		api.Cli(mgr)
-	}
+	return nil
 }

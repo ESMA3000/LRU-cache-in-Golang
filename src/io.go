@@ -1,39 +1,44 @@
 package src
 
 import (
-	"bytes"
-	"encoding/gob"
 	"fmt"
+	"log"
 	"os"
+	"strings"
 )
 
-func (m *LRUMap) SaveToDisk(filePath string) error {
-	nodes := m.Iterator()
-	var buf bytes.Buffer
-	if err := gob.NewEncoder(&buf).Encode(nodes); err != nil {
-		return fmt.Errorf("error marshaling binary data: %v", err)
-	}
-
-	return os.WriteFile(filePath, buf.Bytes(), 0644)
+func FatalError(message string, err error) {
+	log.Fatalf("%s %v\n", message, err)
 }
 
-func (m *LRUMap) LoadFromDisk(filePath string) error {
-	content, err := os.ReadFile(filePath)
+func LogErrorConsole(e error) {
+	log.Printf("Error: %v\n", e)
+}
+
+func LogError(e error) {
+	file, err := os.OpenFile("../.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
-		return fmt.Errorf("error reading file: %v", err)
+		fmt.Printf("error opening log file: %v\n", err)
+		return
 	}
+	defer file.Close()
+	logger := log.New(file, "", log.LstdFlags|log.Lmicroseconds)
+	logger.Println(e)
+}
 
-	var nodes []*Node
-	if err := gob.NewDecoder(bytes.NewReader(content)).Decode(&nodes); err != nil {
-		return fmt.Errorf("error decoding binary data: %v", err)
+func (m *LRUMap) Print() string {
+	m.PrintNodes()
+	var builder strings.Builder
+	for _, node := range m.nodes {
+		builder.WriteString(fmt.Sprintf("Key: %d, Value: %v\n",
+			node.key, node.value))
 	}
+	return builder.String()
+}
 
-	/* for _, node := range nodes {
-		m.nodes[node.key] = m.getNodeFromPool()
-		m.nodes[node.key].key = node.key
-		m.nodes[node.key].value = node.value
-		m.setHead(m.nodes[node.key])
-	} */
-
-	return nil
+func (m *LRUMap) PrintNodes() {
+	fmt.Println(m.head, m.tail)
+	for _, node := range m.nodes {
+		fmt.Println(node)
+	}
 }

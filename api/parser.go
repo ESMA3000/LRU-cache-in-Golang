@@ -18,17 +18,16 @@ type Command struct {
 }
 
 const (
-	// Add new cache management commands
-	Cmd_CREATE  Cmd = "CREATE"
-	Cmd_DESTROY Cmd = "DESTROY"
-	Cmd_LIST    Cmd = "LIST"
-	Cmd_SET     Cmd = "SET"
-	Cmd_GET     Cmd = "GET"
-	Cmd_DEL     Cmd = "DEL"
-	Cmd_PRINT   Cmd = "PRINT"
-	Cmd_CLEAR   Cmd = "CLEAR"
-	Cmd_EXIT    Cmd = "EXIT"
-	Cmd_HELP    Cmd = "HELP"
+	Cmd_CREATE    Cmd = "CREATE"
+	Cmd_DESTROY   Cmd = "DESTROY"
+	Cmd_LIST      Cmd = "LIST"
+	Cmd_SET       Cmd = "SET"
+	Cmd_GET       Cmd = "GET"
+	Cmd_DEL       Cmd = "DEL"
+	Cmd_PRINT     Cmd = "PRINT"
+	Cmd_CLEAR     Cmd = "CLEAR"
+	Cmd_CLEAR_ALL Cmd = "CLEAR_ALL"
+	Cmd_HELP      Cmd = "HELP"
 )
 
 func hashString(s string) uint64 {
@@ -52,14 +51,14 @@ func Parse(input []byte) (*Command, error) {
 			return nil, fmt.Errorf("usage: CREATE <cache_name> <capacity>")
 		}
 		cmd.cacheName = args[1]
-		cmd.value = []byte(args[2]) // Store capacity in value
+		cmd.value = []byte(args[2])
 
 	case Cmd_LIST:
 		if len(args) != 1 {
 			return nil, fmt.Errorf("usage: LIST")
 		}
 
-	case Cmd_SET, Cmd_GET, Cmd_DEL, Cmd_PRINT, Cmd_CLEAR:
+	case Cmd_SET, Cmd_GET, Cmd_DEL, Cmd_PRINT, Cmd_CLEAR, Cmd_CLEAR_ALL:
 		if len(args) < 2 {
 			return nil, fmt.Errorf("usage: %s <cache_name> [args...]", cmd.operation)
 		}
@@ -79,9 +78,6 @@ func Parse(input []byte) (*Command, error) {
 			}
 			cmd.key = hashString(args[2])
 		}
-
-	case Cmd_EXIT:
-		// No arguments
 
 	case Cmd_HELP:
 		// No arguments
@@ -142,6 +138,10 @@ func Execute(cm *src.CacheManager, cmd *Command) (string, error) {
 			return "OK", nil
 		}
 
+	case Cmd_CLEAR_ALL:
+		cm.ClearAllCaches()
+		return "OK", nil
+
 	case Cmd_HELP:
 		return `Available commands:
 CREATE <cache_name> <capacity>
@@ -152,6 +152,7 @@ GET <cache_name> <key>
 DEL <cache_name> <key>
 PRINT <cache_name>
 CLEAR <cache_name>
+CLEAR_ALL
 QUIT`, nil
 	}
 

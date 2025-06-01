@@ -91,6 +91,14 @@ func TestExecute(t *testing.T) {
 			want:    "OK",
 			wantErr: false,
 		},
+		{
+			name: "CLEAR_ALL caches",
+			cmd: &Command{
+				operation: Cmd_CLEAR_ALL,
+			},
+			want:    "OK",
+			wantErr: false,
+		},
 	}
 
 	for _, tt := range tests {

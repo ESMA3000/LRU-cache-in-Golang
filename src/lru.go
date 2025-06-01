@@ -1,8 +1,6 @@
 package src
 
 import (
-	"fmt"
-	"strings"
 	"sync"
 )
 
@@ -25,6 +23,16 @@ type LRUMap struct {
 	tail     *Node
 	nodes    map[uint64]*Node
 	mutex    sync.Mutex
+}
+
+func InitLRUMap(capacity uint8) *LRUMap {
+	for range int(capacity) {
+		nodePool.Put(&Node{})
+	}
+	return &LRUMap{
+		capacity: capacity,
+		nodes:    make(map[uint64]*Node, capacity),
+	}
 }
 
 func newNode(key uint64, value []byte) *Node {
@@ -51,16 +59,6 @@ func (m *LRUMap) unlinkNode(node *Node) {
 	}
 	if node.next != nil {
 		node.next.prev = node.prev
-	}
-}
-
-func InitLRUMap(capacity uint8) *LRUMap {
-	for range int(capacity) {
-		nodePool.Put(&Node{})
-	}
-	return &LRUMap{
-		capacity: capacity,
-		nodes:    make(map[uint64]*Node, capacity),
 	}
 }
 
@@ -155,23 +153,6 @@ func (m *LRUMap) Clear() {
 	defer m.mutex.Unlock()
 	for key := range m.nodes {
 		m.removeNode(m.nodes[key])
-	}
-}
-
-func (m *LRUMap) Print() string {
-	m.PrintNodes()
-	var builder strings.Builder
-	for _, node := range m.nodes {
-		builder.WriteString(fmt.Sprintf("Key: %d, Value: %v\n",
-			node.key, node.value))
-	}
-	return builder.String()
-}
-
-func (m *LRUMap) PrintNodes() {
-	fmt.Println(m.head, m.tail)
-	for _, node := range m.nodes {
-		fmt.Println(node)
 	}
 }
 

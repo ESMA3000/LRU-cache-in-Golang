@@ -25,7 +25,7 @@ func handleConnection(conn net.Conn, bufferSize uint16, mgr *src.CacheManager) {
 		bufferPool.Put(buf)
 	}()
 
-	conn.Write([]byte("Connected to lru cachemanager\r\n"))
+	conn.Write([]byte("Connected to lru engine\r\n"))
 	for {
 		input := *buf
 		n, err := conn.Read(input)
@@ -38,10 +38,6 @@ func handleConnection(conn net.Conn, bufferSize uint16, mgr *src.CacheManager) {
 		if err != nil {
 			conn.Write(fmt.Appendf(nil, "ERR %s\r\n", err))
 			continue
-		}
-
-		if cmd.operation == Cmd_EXIT {
-			break
 		}
 
 		result, err := Execute(mgr, cmd)
@@ -57,24 +53,20 @@ func ServerTCP(port string, bufferSize uint16, mgr *src.CacheManager) {
 	var activeConnections int32 = 0
 	listener, err := net.Listen("tcp", ":"+port)
 	if err != nil {
-		fmt.Printf("Error starting listener: %v\n", err)
-		return
+		src.FatalError("Failed to start TCP server", err)
 	}
 	defer listener.Close()
 
 	fmt.Printf("Server started on port %s\n", port)
-
 	for {
 		if atomic.LoadInt32(&activeConnections) >= maxConnections {
 			continue
 		}
-
 		conn, err := listener.Accept()
 		if err != nil {
-			fmt.Printf("Error accepting connection: %v\n", err)
+			src.LogError(err)
 			continue
 		}
-
 		atomic.AddInt32(&activeConnections, 1)
 		fmt.Printf("New client connected (active: %d)\n", atomic.LoadInt32(&activeConnections))
 		go func() {

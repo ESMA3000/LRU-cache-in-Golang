@@ -39,7 +39,7 @@ Cache Operations:
 - `DEL <cache_name> <key>`: Remove a key-value pair from specified cache
 - `PRINT <cache_name>`: Display specified cache contents
 - `CLEAR <cache_name>`: Remove all entries from specified cache
-- `EXIT`: Exit the program
+- `CLEAR_ALL`: Clear all caches
 - `HELP`: Show available commands
 
 ## Implementation Details

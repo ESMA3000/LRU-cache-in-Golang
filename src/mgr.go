@@ -29,6 +29,12 @@ func (cm *CacheManager) DestroyCache(name string) {
 	}
 }
 
+func (cm *CacheManager) ClearAllCaches() {
+	for name := range cm.caches {
+		cm.DestroyCache(name)
+	}
+}
+
 func (cm *CacheManager) ListCaches() []string {
 	var names []string = make([]string, 0, len(cm.caches))
 	for name := range cm.caches {
