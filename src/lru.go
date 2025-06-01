@@ -18,6 +18,7 @@ type Node struct {
 }
 
 type LRUMap struct {
+	title    string
 	capacity uint8
 	head     *Node
 	tail     *Node
@@ -25,11 +26,12 @@ type LRUMap struct {
 	mutex    sync.Mutex
 }
 
-func InitLRUMap(capacity uint8) *LRUMap {
+func InitLRUMap(title string, capacity uint8) *LRUMap {
 	for range int(capacity) {
 		nodePool.Put(&Node{})
 	}
 	return &LRUMap{
+		title:    title,
 		capacity: capacity,
 		nodes:    make(map[uint64]*Node, capacity),
 	}

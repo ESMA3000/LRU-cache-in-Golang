@@ -16,7 +16,7 @@ func LogErrorConsole(e error) {
 }
 
 func LogError(e error) {
-	file, err := os.OpenFile("../.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	file, err := os.OpenFile("./.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		fmt.Printf("error opening log file: %v\n", err)
 		return
