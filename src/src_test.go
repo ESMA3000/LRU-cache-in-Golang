@@ -14,11 +14,11 @@ func TestSrc(t *testing.T) {
 			if cache.capacity != 2 {
 				t.Errorf("Expected capacity 2, got %d", cache.capacity)
 			}
-			if cache.head != nil || cache.tail != nil {
-				t.Error("Expected empty head and tail")
+			if cache.headIdx != NoIdx || cache.tailIdx != NoIdx {
+				t.Error("Expected NoIdx for head and tail")
 			}
-			if len(cache.nodes) != 0 {
-				t.Error("Expected empty nodes map")
+			if len(cache.nodes) != 2 {
+				t.Errorf("Expected nodes array length 2, got %d", len(cache.nodes))
 			}
 		})
 
@@ -30,36 +30,43 @@ func TestSrc(t *testing.T) {
 			if string(node.value) != "test" {
 				t.Errorf("Expected value 'test', got %s", string(node.value))
 			}
-			if node.prev != nil || node.next != nil {
-				t.Error("Expected nil prev and next pointers")
+			if node.prevIdx != NoIdx || node.nextIdx != NoIdx {
+				t.Error("Expected NoIdx for prev and next indices")
 			}
 		})
 
 		t.Run("removeNode", func(t *testing.T) {
 			cache := InitLRUMap("test", 2)
 			cache.Put(1, []byte("one"))
-			node := cache.nodes[1]
-			cache.removeNode(node)
-			if _, exists := cache.nodes[1]; exists {
-				t.Error("Expected node to be removed from map")
+			if idx, ok := cache.keyToIdx[1]; ok {
+				node := cache.getNodePtr(idx)
+				cache.removeNode(node)
+				if _, exists := cache.keyToIdx[1]; exists {
+					t.Error("Expected key to be removed from keyToIdx")
+				}
+			} else {
+				t.Error("Expected key 1 to exist in keyToIdx")
 			}
 		})
 
 		t.Run("setHead", func(t *testing.T) {
 			cache := InitLRUMap("test", 2)
-			node := newNode(1, []byte("one"))
+			cache.Put(1, []byte("one"))
+			cache.Put(2, []byte("two"))
 
-			// Test empty cache
-			cache.setHead(node)
-			if cache.head != node || cache.tail != node {
-				t.Error("Expected node to be both head and tail")
+			firstIdx := cache.headIdx
+			secondIdx := cache.nodes[firstIdx].nextIdx
+
+			if firstIdx == NoIdx || secondIdx == NoIdx {
+				t.Error("Expected valid indices for head and next node")
 			}
 
-			// Test adding second node
-			node2 := newNode(2, []byte("two"))
-			cache.setHead(node2)
-			if cache.head != node2 || cache.head.next != node {
-				t.Error("Expected node2 to be head and linked to node1")
+			if string(cache.nodes[firstIdx].value) != "two" {
+				t.Error("Expected 'two' at head")
+			}
+
+			if string(cache.nodes[secondIdx].value) != "one" {
+				t.Error("Expected 'one' as second node")
 			}
 		})
 
@@ -67,20 +74,19 @@ func TestSrc(t *testing.T) {
 			cache := InitLRUMap("test", 2)
 			cache.Put(1, []byte("one"))
 			cache.Put(2, []byte("two"))
-			oldTail := cache.tail
-			cache.removeTail()
-			if cache.tail == oldTail {
-				t.Error("Expected tail to change")
+			oldTailIdx, ok := cache.removeTail()
+			if !ok || cache.tailIdx == oldTailIdx {
+				t.Error("Expected successful tail removal")
 			}
 		})
 
-		t.Run("addNode", func(t *testing.T) {
+		t.Run("Put", func(t *testing.T) {
 			cache := InitLRUMap("test", 2)
-			cache.addNode(1, []byte("one"))
+			cache.Put(1, []byte("one"))
 			if cache.Length() != 1 {
 				t.Error("Expected length 1")
 			}
-			if cache.head.key != 1 {
+			if cache.nodes[cache.headIdx].key != 1 {
 				t.Error("Expected key 1 at head")
 			}
 		})

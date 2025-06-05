@@ -37,7 +37,7 @@ func (m *LRUMap) Print() string {
 }
 
 func (m *LRUMap) PrintNodes() {
-	fmt.Println(m.head, m.tail)
+	fmt.Println(m.headIdx, m.tailIdx)
 	for _, node := range m.nodes {
 		fmt.Println(node)
 	}
