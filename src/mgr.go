@@ -42,7 +42,7 @@ func (cm *CacheManager) ListCaches() []string {
 	for m := range cm.caches {
 		cache := cm.caches[m]
 		names = append(names, cache.title)
-		for _, node := range cache.Iterator() {
+		for _, node := range cache.Iterator(false) {
 			names = append(names, fmt.Sprintf("Key: %d, Value: %v", node.key, node.value))
 		}
 	}

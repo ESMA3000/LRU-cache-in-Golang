@@ -18,7 +18,7 @@ type LRUMap struct {
 	freeList []uint8
 	title    string
 	keyToIdx map[uint64]uint8
-	mutex    sync.Mutex
+	mutex    sync.RWMutex
 	headIdx  uint8
 	tailIdx  uint8
 	capacity uint8
@@ -73,20 +73,14 @@ func (m *LRUMap) removeNode(node *Node) {
 }
 
 func (m *LRUMap) setHead(idx uint8) {
-	if idx >= m.capacity {
+	if m.headIdx == idx {
 		return
 	}
-
 	if m.headIdx == NoIdx {
 		m.headIdx = idx
 		m.tailIdx = idx
 		return
 	}
-
-	if m.headIdx == idx {
-		return
-	}
-
 	node := m.getNodePtr(idx)
 	if m.tailIdx == idx {
 		m.tailIdx = node.prevIdx
@@ -123,6 +117,15 @@ func (m *LRUMap) removeTail() (uint8, bool) {
 	return oldTailIdx, true
 }
 
+func (m *LRUMap) unlinkNode(node *Node) {
+	if node.prevIdx != NoIdx {
+		m.nodes[node.prevIdx].nextIdx = node.nextIdx
+	}
+	if node.nextIdx != NoIdx {
+		m.nodes[node.nextIdx].prevIdx = node.prevIdx
+	}
+}
+
 func (m *LRUMap) Put(key uint64, value []byte) {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
@@ -137,11 +140,14 @@ func (m *LRUMap) Put(key uint64, value []byte) {
 	if !ok {
 		if tailIdx, ok := m.removeTail(); ok {
 			delete(m.keyToIdx, m.nodes[tailIdx].key)
+			m.getNodePtr(idx).key = key
+			m.getNodePtr(idx).value = value
 			idx = tailIdx
 		}
+	} else {
+		m.nodes[idx] = newNode(key, value)
 	}
 
-	m.nodes[idx] = newNode(key, value)
 	m.keyToIdx[key] = idx
 	m.setHead(idx)
 }
@@ -175,15 +181,6 @@ func (m *LRUMap) Eject(key uint64) {
 	}
 }
 
-func (m *LRUMap) unlinkNode(node *Node) {
-	if node.prevIdx != NoIdx {
-		m.nodes[node.prevIdx].nextIdx = node.nextIdx
-	}
-	if node.nextIdx != NoIdx {
-		m.nodes[node.nextIdx].prevIdx = node.prevIdx
-	}
-}
-
 func (m *LRUMap) GetNode(key uint64) *Node {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
@@ -195,8 +192,8 @@ func (m *LRUMap) GetNode(key uint64) *Node {
 }
 
 func (m *LRUMap) Length() uint8 {
-	m.mutex.Lock()
-	defer m.mutex.Unlock()
+	m.mutex.RLock()
+	defer m.mutex.RUnlock()
 	return m.capacity - uint8(len(m.freeList))
 }
 
@@ -204,45 +201,41 @@ func (m *LRUMap) Clear() {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 
-	m.nodes = make([]Node, m.capacity)
-	m.keyToIdx = make(map[uint64]uint8, m.capacity)
-	m.freeList = make([]uint8, m.capacity)
+	for i := range m.nodes {
+		m.nodes[i] = newNode(0, nil)
+	}
 	for i := range m.nodes {
 		m.freeList[i] = uint8(i)
+	}
+	for k := range m.keyToIdx {
+		delete(m.keyToIdx, k)
 	}
 	m.headIdx = NoIdx
 	m.tailIdx = NoIdx
 }
 
-func (m *LRUMap) Iterator() []*Node {
-	m.mutex.Lock()
-	defer m.mutex.Unlock()
+func (m *LRUMap) Iterator(rev bool) []*Node {
+	m.mutex.RLock()
+	defer m.mutex.RUnlock()
 
 	nodes := make([]*Node, 0, m.Length())
-
 	if len(m.keyToIdx) == 0 || m.headIdx == NoIdx {
 		return nodes
 	}
 
-	curr := m.headIdx
-	for curr != NoIdx && curr < m.capacity {
-		nodes = append(nodes, &m.nodes[curr])
-		if curr == m.tailIdx {
-			break
+	var curr uint8
+	if rev {
+		curr = m.tailIdx
+	} else {
+		curr = m.headIdx
+	}
+	for curr != NoIdx {
+		nodes = append(nodes, m.getNodePtr(curr))
+		if rev {
+			curr = m.nodes[curr].prevIdx
+		} else {
+			curr = m.nodes[curr].nextIdx
 		}
-		curr = m.nodes[curr].nextIdx
 	}
 	return nodes
 }
-
-/* func (m *LRUMap) ReverseIterator() []*Node {
-	m.mutex.Lock()
-	defer m.mutex.Unlock()
-
-	var nodes = make([]*Node, 0, len(m.nodes))
-	for node := m.tail; node != nil; node = node.prev {
-		nodes = append(nodes, node)
-	}
-	return nodes
-}
-*/

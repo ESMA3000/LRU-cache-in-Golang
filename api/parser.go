@@ -89,7 +89,7 @@ func Parse(input []byte) (*Command, error) {
 				return nil, fmt.Errorf("usage: SET <cache_name> <key> <value>")
 			}
 			cmd.key = hash(args[2])
-			cmd.value = bytes.Join(args[3:], []byte(""))
+			cmd.value = bytes.Join(args[3:], []byte(" "))
 		case Cmd_GET, Cmd_DEL:
 			if len(args) != 3 {
 				return nil, fmt.Errorf("usage: %s <cache_name> <key>", cmd.operation)
