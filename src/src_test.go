@@ -144,8 +144,74 @@ func TestSrc(t *testing.T) {
 				t.Error("Expected empty cache")
 			}
 		})
-	})
 
+		t.Run("Iterator", func(t *testing.T) {
+			cache := InitLRUMap("test", 3)
+			cache.Put(1, []byte("one"))
+			cache.Put(2, []byte("two"))
+			cache.Put(3, []byte("three"))
+
+			// Test forward iteration
+			nodes := cache.Iterator(false)
+			if len(nodes) != 3 {
+				t.Errorf("Expected 3 nodes, got %d", len(nodes))
+			}
+			expected := []uint64{3, 2, 1}
+			for i, node := range nodes {
+				if node.key != expected[i] {
+					t.Errorf("Expected key %d, got %d at position %d", expected[i], node.key, i)
+				}
+			}
+
+			// Test reverse iteration
+			nodes = cache.Iterator(true)
+			expected = []uint64{1, 2, 3}
+			for i, node := range nodes {
+				if node.key != expected[i] {
+					t.Errorf("Expected key %d, got %d at position %d", expected[i], node.key, i)
+				}
+			}
+
+			// Test empty cache iteration
+			cache.Clear()
+			nodes = cache.Iterator(false)
+			if len(nodes) != 0 {
+				t.Errorf("Expected empty iterator result, got %d nodes", len(nodes))
+			}
+		})
+
+		t.Run("CapacityLimit", func(t *testing.T) {
+			cache := InitLRUMap("test", 255)
+			if cache.capacity != 254 {
+				t.Errorf("Expected capacity to be limited to 254, got %d", cache.capacity)
+			}
+		})
+
+		t.Run("NodeLinking", func(t *testing.T) {
+			cache := InitLRUMap("test", 3)
+			cache.Put(1, []byte("one"))
+			cache.Put(2, []byte("two"))
+			cache.Put(3, []byte("three"))
+
+			// Test head links
+			if cache.headIdx == NoIdx {
+				t.Error("Head should not be NoIdx")
+			}
+			headNode := cache.getNodePtr(cache.headIdx)
+			if headNode.prevIdx != NoIdx {
+				t.Error("Head's prev should be NoIdx")
+			}
+
+			// Test tail links
+			if cache.tailIdx == NoIdx {
+				t.Error("Tail should not be NoIdx")
+			}
+			tailNode := cache.getNodePtr(cache.tailIdx)
+			if tailNode.nextIdx != NoIdx {
+				t.Error("Tail's next should be NoIdx")
+			}
+		})
+	})
 	t.Run("LRUMap", func(t *testing.T) {
 		t.Run("TestLRUMapConcurrency", func(t *testing.T) {
 			cache := InitLRUMap("test", 16)
@@ -157,7 +223,7 @@ func TestSrc(t *testing.T) {
 			// Writer goroutine
 			go func() {
 				defer wg.Done()
-				for i := 0; i < iterations; i++ {
+				for i := range iterations {
 					cache.Put(uint64(i), []byte("test"))
 				}
 			}()
@@ -165,7 +231,7 @@ func TestSrc(t *testing.T) {
 			// Reader goroutine
 			go func() {
 				defer wg.Done()
-				for i := 0; i < iterations; i++ {
+				for i := range iterations {
 					cache.Get(uint64(i))
 				}
 			}()
@@ -282,5 +348,83 @@ func BenchmarkLRUMap(b *testing.B) {
 				wg.Wait()
 			}
 		})
+	}
+}
+
+func BenchmarkLRUMapHitRatio(b *testing.B) {
+	sizes := []uint8{4, 16, 64}
+	ratios := []int{25, 50, 75, 95} // hit ratios in percentage
+	data := []byte("test-value-that-is-larger-than-32-bytes-to-simulate-real-world-data")
+
+	for _, size := range sizes {
+		cache := InitLRUMap("test", size)
+
+		// Warm up cache to full capacity
+		for i := uint64(0); i < uint64(size); i++ {
+			cache.Put(i, data)
+		}
+
+		for _, ratio := range ratios {
+			b.Run(fmt.Sprintf("Size-%d/HitRatio-%d%%", size, ratio), func(b *testing.B) {
+				missOffset := uint64(size * 2) // Use values outside cache for misses
+
+				b.ResetTimer()
+				for i := 0; i < b.N; i++ {
+					if i%100 < ratio {
+						// Hit case - access data within cache capacity
+						cache.Get(uint64(i) % uint64(size))
+					} else {
+						// Miss case - access data outside cache capacity
+						cache.Get(missOffset + uint64(i))
+					}
+				}
+			})
+		}
+
+		// Test write-heavy workload with different hit ratios
+		for _, ratio := range ratios {
+			b.Run(fmt.Sprintf("WriteHeavy/Size-%d/HitRatio-%d%%", size, ratio), func(b *testing.B) {
+				missOffset := uint64(size * 2)
+
+				b.ResetTimer()
+				for i := 0; i < b.N; i++ {
+					if i%100 < ratio {
+						// Hit case - update existing entry
+						key := uint64(i) % uint64(size)
+						cache.Put(key, data)
+					} else {
+						// Miss case - insert new entry
+						cache.Put(missOffset+uint64(i), data)
+					}
+				}
+			})
+		}
+
+		// Test mixed read/write with different hit ratios
+		for _, ratio := range ratios {
+			b.Run(fmt.Sprintf("Mixed/Size-%d/HitRatio-%d%%", size, ratio), func(b *testing.B) {
+				missOffset := uint64(size * 2)
+
+				b.ResetTimer()
+				for i := 0; i < b.N; i++ {
+					isRead := i%2 == 0 // 50% reads, 50% writes
+					isHit := i%100 < ratio
+
+					if isRead {
+						if isHit {
+							cache.Get(uint64(i) % uint64(size))
+						} else {
+							cache.Get(missOffset + uint64(i))
+						}
+					} else {
+						if isHit {
+							cache.Put(uint64(i)%uint64(size), data)
+						} else {
+							cache.Put(missOffset+uint64(i), data)
+						}
+					}
+				}
+			})
+		}
 	}
 }

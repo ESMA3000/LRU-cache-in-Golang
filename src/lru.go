@@ -1,29 +1,7 @@
+// Package src implements a fixed-size LRU (Least Recently Used) cache
 package src
 
-import (
-	"sync"
-)
-
-const NoIdx uint8 = 255
-
-type Node struct {
-	value   []byte
-	key     uint64
-	prevIdx uint8
-	nextIdx uint8
-}
-
-type LRUMap struct {
-	nodes    []Node
-	freeList []uint8
-	title    string
-	keyToIdx map[uint64]uint8
-	mutex    sync.RWMutex
-	headIdx  uint8
-	tailIdx  uint8
-	capacity uint8
-}
-
+// InitLRUMap initializes a new LRU cache with given title and capacity
 func InitLRUMap(title string, capacity uint8) *LRUMap {
 	if capacity >= NoIdx {
 		capacity = NoIdx - 1
@@ -44,6 +22,18 @@ func InitLRUMap(title string, capacity uint8) *LRUMap {
 	return m
 }
 
+// newNode creates a new cache node with the given key and value
+func newNode(key uint64, value []byte) Node {
+	return Node{
+		key:     key,
+		value:   value,
+		prevIdx: NoIdx,
+		nextIdx: NoIdx,
+	}
+}
+
+// Internal node management methods
+
 func (m *LRUMap) getNodePtr(idx uint8) *Node {
 	return &m.nodes[idx]
 }
@@ -55,15 +45,6 @@ func (m *LRUMap) getFreeIndex() (uint8, bool) {
 	idx := m.freeList[len(m.freeList)-1]
 	m.freeList = m.freeList[:len(m.freeList)-1]
 	return idx, true
-}
-
-func newNode(key uint64, value []byte) Node {
-	return Node{
-		key:     key,
-		value:   value,
-		prevIdx: NoIdx,
-		nextIdx: NoIdx,
-	}
 }
 
 func (m *LRUMap) removeNode(node *Node) {
@@ -126,6 +107,9 @@ func (m *LRUMap) unlinkNode(node *Node) {
 	}
 }
 
+// Public API methods
+
+// Put adds or updates a key-value pair in the cache
 func (m *LRUMap) Put(key uint64, value []byte) {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
@@ -140,18 +124,16 @@ func (m *LRUMap) Put(key uint64, value []byte) {
 	if !ok {
 		if tailIdx, ok := m.removeTail(); ok {
 			delete(m.keyToIdx, m.nodes[tailIdx].key)
-			m.getNodePtr(idx).key = key
-			m.getNodePtr(idx).value = value
 			idx = tailIdx
 		}
-	} else {
-		m.nodes[idx] = newNode(key, value)
 	}
 
+	m.nodes[idx] = newNode(key, value)
 	m.keyToIdx[key] = idx
 	m.setHead(idx)
 }
 
+// Get retrieves a value from the cache by key
 func (m *LRUMap) Get(key uint64) []byte {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
@@ -163,6 +145,7 @@ func (m *LRUMap) Get(key uint64) []byte {
 	return nil
 }
 
+// Eject removes a key-value pair from the cache
 func (m *LRUMap) Eject(key uint64) {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
@@ -181,6 +164,7 @@ func (m *LRUMap) Eject(key uint64) {
 	}
 }
 
+// GetNode retrieves a node from the cache by key
 func (m *LRUMap) GetNode(key uint64) *Node {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
@@ -191,12 +175,14 @@ func (m *LRUMap) GetNode(key uint64) *Node {
 	return nil
 }
 
+// Length returns the current number of items in the cache
 func (m *LRUMap) Length() uint8 {
 	m.mutex.RLock()
 	defer m.mutex.RUnlock()
-	return m.capacity - uint8(len(m.freeList))
+	return uint8(len(m.keyToIdx))
 }
 
+// Clear removes all items from the cache
 func (m *LRUMap) Clear() {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
@@ -204,7 +190,7 @@ func (m *LRUMap) Clear() {
 	for i := range m.nodes {
 		m.nodes[i] = newNode(0, nil)
 	}
-	for i := range m.nodes {
+	for i := range m.freeList {
 		m.freeList[i] = uint8(i)
 	}
 	for k := range m.keyToIdx {
@@ -214,6 +200,7 @@ func (m *LRUMap) Clear() {
 	m.tailIdx = NoIdx
 }
 
+// Iterator returns a slice of nodes in order (or reverse order)
 func (m *LRUMap) Iterator(rev bool) []*Node {
 	m.mutex.RLock()
 	defer m.mutex.RUnlock()
