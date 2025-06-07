@@ -1,7 +1,7 @@
 package api
 
 import (
-	"lru/src"
+	"lrue/src"
 	"testing"
 )
 
