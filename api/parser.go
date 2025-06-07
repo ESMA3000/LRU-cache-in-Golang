@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"hash/fnv"
-	"lru/src"
+	"lrue/src"
 	"strconv"
 	"strings"
 )

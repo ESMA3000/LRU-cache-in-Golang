@@ -2,7 +2,7 @@ package api
 
 import (
 	"fmt"
-	"lru/src"
+	"lrue/src"
 	"net"
 	"sync"
 	"sync/atomic"

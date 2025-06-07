@@ -4,7 +4,7 @@ import (
 	"bufio"
 	"context"
 	"fmt"
-	"lru/src"
+	"lrue/src"
 	"os"
 )
 
