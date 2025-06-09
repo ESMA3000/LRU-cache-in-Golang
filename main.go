@@ -22,7 +22,7 @@ func main() {
 	if err := validateConfig(config); err != nil {
 		src.FatalError("Invalid configuration", err)
 	}
-	mgr := src.NewCacheManager()
+	mgr := src.NewCacheManager[uint8, uint64, []byte]()
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()

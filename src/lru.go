@@ -1,44 +1,46 @@
 // Package src implements a fixed-size LRU (Least Recently Used) cache
 package src
 
+import "sync"
+
 // InitLRUMap initializes a new LRU cache with given title and capacity
-func InitLRUMap(title string, capacity uint8) *LRUMap {
-	if capacity >= NoIdx {
-		capacity = NoIdx - 1
+func InitLRUMap[U, K Uints, V any](title string, capacity U) *LRUMap[U, K, V] {
+	if capacity >= ^U(0) {
+		capacity = ^U(0) - 1
 	}
-	m := &LRUMap{
+	m := &LRUMap[U, K, V]{
 		title:    title,
 		capacity: capacity,
-		nodes:    make([]Node, capacity),
-		keyToIdx: make(map[uint64]uint8, capacity),
-		freeList: make([]uint8, capacity),
-		headIdx:  NoIdx,
-		tailIdx:  NoIdx,
+		nodes:    make([]Node[U, K, V], capacity),
+		keyToIdx: make(map[K]U, capacity),
+		freeList: make([]U, capacity),
+		mutex:    sync.RWMutex{},
+		NoIdx:    ^U(0),
+		headIdx:  ^U(0),
+		tailIdx:  ^U(0),
 	}
 
 	for i := range m.nodes {
-		m.freeList[i] = uint8(i)
+		m.freeList[i] = U(i)
 	}
 	return m
 }
 
-// newNode creates a new cache node with the given key and value
-func newNode(key uint64, value []byte) Node {
-	return Node{
+// Internal node management methods
+func (m *LRUMap[U, K, V]) newNode(key K, value V) Node[U, K, V] {
+	return Node[U, K, V]{
 		key:     key,
 		value:   value,
-		prevIdx: NoIdx,
-		nextIdx: NoIdx,
+		prevIdx: m.NoIdx,
+		nextIdx: m.NoIdx,
 	}
 }
 
-// Internal node management methods
-
-func (m *LRUMap) getNodePtr(idx uint8) *Node {
+func (m *LRUMap[U, K, V]) getNodePtr(idx U) *Node[U, K, V] {
 	return &m.nodes[idx]
 }
 
-func (m *LRUMap) getFreeIndex() (uint8, bool) {
+func (m *LRUMap[U, K, V]) getFreeIndex() (U, bool) {
 	if len(m.freeList) == 0 {
 		return 0, false
 	}
@@ -47,17 +49,17 @@ func (m *LRUMap) getFreeIndex() (uint8, bool) {
 	return idx, true
 }
 
-func (m *LRUMap) removeNode(node *Node) {
+func (m *LRUMap[U, K, V]) removeNode(node *Node[U, K, V]) {
 	delete(m.keyToIdx, node.key)
-	node.prevIdx = NoIdx
-	node.nextIdx = NoIdx
+	node.prevIdx = m.NoIdx
+	node.nextIdx = m.NoIdx
 }
 
-func (m *LRUMap) setHead(idx uint8) {
+func (m *LRUMap[U, K, V]) setHead(idx U) {
 	if m.headIdx == idx {
 		return
 	}
-	if m.headIdx == NoIdx {
+	if m.headIdx == m.NoIdx {
 		m.headIdx = idx
 		m.tailIdx = idx
 		return
@@ -68,15 +70,15 @@ func (m *LRUMap) setHead(idx uint8) {
 	}
 
 	m.unlinkNode(node)
-	node.prevIdx = NoIdx
+	node.prevIdx = m.NoIdx
 	node.nextIdx = m.headIdx
 	m.nodes[m.headIdx].prevIdx = idx
 	m.headIdx = idx
 }
 
-func (m *LRUMap) removeTail() (uint8, bool) {
-	if m.tailIdx == NoIdx {
-		return NoIdx, false
+func (m *LRUMap[U, K, V]) removeTail() (U, bool) {
+	if m.tailIdx == m.NoIdx {
+		return m.NoIdx, false
 	}
 
 	oldTailIdx := m.tailIdx
@@ -85,24 +87,24 @@ func (m *LRUMap) removeTail() (uint8, bool) {
 	m.tailIdx = tailNode.prevIdx
 
 	if m.headIdx == oldTailIdx {
-		m.headIdx = NoIdx
+		m.headIdx = m.NoIdx
 	}
 
-	if m.tailIdx != NoIdx {
-		m.nodes[m.tailIdx].nextIdx = NoIdx
+	if m.tailIdx != m.NoIdx {
+		m.nodes[m.tailIdx].nextIdx = m.NoIdx
 	}
 
-	tailNode.prevIdx = NoIdx
-	tailNode.nextIdx = NoIdx
+	tailNode.prevIdx = m.NoIdx
+	tailNode.nextIdx = m.NoIdx
 
 	return oldTailIdx, true
 }
 
-func (m *LRUMap) unlinkNode(node *Node) {
-	if node.prevIdx != NoIdx {
+func (m *LRUMap[U, K, V]) unlinkNode(node *Node[U, K, V]) {
+	if node.prevIdx != m.NoIdx {
 		m.nodes[node.prevIdx].nextIdx = node.nextIdx
 	}
-	if node.nextIdx != NoIdx {
+	if node.nextIdx != m.NoIdx {
 		m.nodes[node.nextIdx].prevIdx = node.prevIdx
 	}
 }
@@ -110,7 +112,7 @@ func (m *LRUMap) unlinkNode(node *Node) {
 // Public API methods
 
 // Put adds or updates a key-value pair in the cache
-func (m *LRUMap) Put(key uint64, value []byte) {
+func (m *LRUMap[U, K, V]) Put(key K, value V) {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 
@@ -124,17 +126,17 @@ func (m *LRUMap) Put(key uint64, value []byte) {
 	if !ok {
 		if tailIdx, ok := m.removeTail(); ok {
 			delete(m.keyToIdx, m.nodes[tailIdx].key)
-			idx = tailIdx
+			idx = tailIdx // Just reuse the index directly without adding to freeList
 		}
 	}
 
-	m.nodes[idx] = newNode(key, value)
+	m.nodes[idx] = m.newNode(key, value)
 	m.keyToIdx[key] = idx
 	m.setHead(idx)
 }
 
 // Get retrieves a value from the cache by key
-func (m *LRUMap) Get(key uint64) []byte {
+func (m *LRUMap[U, K, V]) Get(key K) V {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 
@@ -142,11 +144,12 @@ func (m *LRUMap) Get(key uint64) []byte {
 		m.setHead(idx)
 		return m.getNodePtr(idx).value
 	}
-	return nil
+	var zero V
+	return zero
 }
 
 // Eject removes a key-value pair from the cache
-func (m *LRUMap) Eject(key uint64) {
+func (m *LRUMap[U, K, V]) Eject(key K) {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 
@@ -165,7 +168,7 @@ func (m *LRUMap) Eject(key uint64) {
 }
 
 // GetNode retrieves a node from the cache by key
-func (m *LRUMap) GetNode(key uint64) *Node {
+func (m *LRUMap[U, K, V]) GetNode(key K) *Node[U, K, V] {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 	if idx, ok := m.keyToIdx[key]; ok {
@@ -176,47 +179,47 @@ func (m *LRUMap) GetNode(key uint64) *Node {
 }
 
 // Length returns the current number of items in the cache
-func (m *LRUMap) Length() uint8 {
+func (m *LRUMap[U, K, V]) Length() U {
 	m.mutex.RLock()
 	defer m.mutex.RUnlock()
-	return uint8(len(m.keyToIdx))
+	return U(len(m.keyToIdx))
 }
 
 // Clear removes all items from the cache
-func (m *LRUMap) Clear() {
+func (m *LRUMap[U, K, V]) Clear() {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 
 	for i := range m.nodes {
-		m.nodes[i] = newNode(0, nil)
+		m.nodes[i] = m.newNode(K(0), *new(V))
 	}
 	for i := range m.freeList {
-		m.freeList[i] = uint8(i)
+		m.freeList[i] = U(i)
 	}
 	for k := range m.keyToIdx {
 		delete(m.keyToIdx, k)
 	}
-	m.headIdx = NoIdx
-	m.tailIdx = NoIdx
+	m.headIdx = m.NoIdx
+	m.tailIdx = m.NoIdx
 }
 
 // Iterator returns a slice of nodes in order (or reverse order)
-func (m *LRUMap) Iterator(rev bool) []*Node {
+func (m *LRUMap[U, K, V]) Iterator(rev bool) []*Node[U, K, V] {
 	m.mutex.RLock()
 	defer m.mutex.RUnlock()
 
-	nodes := make([]*Node, 0, m.Length())
-	if len(m.keyToIdx) == 0 || m.headIdx == NoIdx {
+	nodes := make([]*Node[U, K, V], 0, m.Length())
+	if len(m.keyToIdx) == 0 || m.headIdx == m.NoIdx {
 		return nodes
 	}
 
-	var curr uint8
+	var curr U
 	if rev {
 		curr = m.tailIdx
 	} else {
 		curr = m.headIdx
 	}
-	for curr != NoIdx {
+	for curr != m.NoIdx {
 		nodes = append(nodes, m.getNodePtr(curr))
 		if rev {
 			curr = m.nodes[curr].prevIdx

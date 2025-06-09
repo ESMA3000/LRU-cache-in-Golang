@@ -1,25 +1,30 @@
 package src
 
-import (
-	"sync"
-)
+import "sync"
 
-const NoIdx uint8 = 255
-
-type Node struct {
-	value   []byte
-	key     uint64
-	prevIdx uint8
-	nextIdx uint8
+type Uints interface {
+	~uint8 | ~uint16 | ~uint32 | ~uint64
 }
 
-type LRUMap struct {
-	nodes    []Node
-	freeList []uint8
+type Node[U, K Uints, V any] struct {
+	value   V
+	key     K
+	prevIdx U
+	nextIdx U
+}
+
+type LRUMap[U, K Uints, V any] struct {
+	nodes    []Node[U, K, V]
+	freeList []U
 	title    string
-	keyToIdx map[uint64]uint8
+	keyToIdx map[K]U
 	mutex    sync.RWMutex
-	headIdx  uint8
-	tailIdx  uint8
-	capacity uint8
+	headIdx  U
+	tailIdx  U
+	NoIdx    U
+	capacity U
+}
+
+type CacheManager[U, K Uints, V any] struct {
+	caches map[K]*LRUMap[U, K, V]
 }

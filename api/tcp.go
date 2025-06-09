@@ -12,7 +12,7 @@ const maxConnections = 256
 
 var bufferPool sync.Pool
 
-func handleConnection(conn net.Conn, bufferSize uint16, mgr *src.CacheManager) {
+func handleConnection[U, K src.Uints, V ~[]byte](conn net.Conn, bufferSize uint16, mgr *src.CacheManager[U, K, V]) {
 	if bufferPool.New == nil {
 		bufferPool.New = func() any {
 			b := make([]byte, bufferSize)
@@ -34,7 +34,7 @@ func handleConnection(conn net.Conn, bufferSize uint16, mgr *src.CacheManager) {
 			break
 		}
 
-		cmd, err := Parse(input[:n])
+		cmd, err := Parse[K, V](input[:n])
 		if err != nil {
 			conn.Write(fmt.Appendf(nil, "ERR %s\r\n", err))
 			continue
@@ -49,7 +49,11 @@ func handleConnection(conn net.Conn, bufferSize uint16, mgr *src.CacheManager) {
 	}
 }
 
-func ServerTCP(port string, bufferSize uint16, mgr *src.CacheManager) {
+func ServerTCP[U, K src.Uints, V ~[]byte](
+	port string,
+	bufferSize uint16,
+	mgr *src.CacheManager[U, K, V],
+) {
 	var activeConnections int32 = 0
 	listener, err := net.Listen("tcp", ":"+port)
 	if err != nil {

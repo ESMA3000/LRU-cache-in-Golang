@@ -3,18 +3,18 @@ package api
 import (
 	"bytes"
 	"fmt"
-	"hash/fnv"
 	"lrue/src"
 	"strconv"
 	"strings"
+	"unsafe"
 )
 
 type Cmd string
-type Command struct {
+type Command[K src.Uints, V any] struct {
 	operation Cmd
 	mapTitle  string
-	mapKey    uint64
-	key       uint64
+	mapKey    K
+	key       K
 	value     []byte
 }
 
@@ -31,10 +31,15 @@ const (
 	Cmd_HELP      Cmd = "HELP"
 )
 
-func hash(data []byte) uint64 {
-	h := fnv.New64a()
-	h.Write(data)
-	return h.Sum64()
+func hash[K src.Uints](data []byte) K {
+	var result K
+	for i, b := range data {
+		// Simple but effective hash mixing
+		result = (result << 1) | (result >> (unsafe.Sizeof(result)*8 - 1)) // Rotate left
+		result ^= K(b)                                                     // XOR with byte
+		result = result*11 + K(i)                                          // Multiply and add position
+	}
+	return result
 }
 
 func splitBytes(input []byte) [][]byte {
@@ -54,14 +59,14 @@ func splitBytes(input []byte) [][]byte {
 	return args
 }
 
-func Parse(input []byte) (*Command, error) {
+func Parse[K src.Uints, V any](input []byte) (*Command[K, V], error) {
 	args := splitBytes(input)
 	if len(args) == 0 {
 		return nil, fmt.Errorf("empty command")
 	}
 
 	opStr := strings.ToUpper(string(args[0]))
-	cmd := &Command{operation: Cmd(opStr)}
+	cmd := &Command[K, V]{operation: Cmd(opStr)}
 
 	switch cmd.operation {
 	case Cmd_CREATE:
@@ -69,7 +74,7 @@ func Parse(input []byte) (*Command, error) {
 			return nil, fmt.Errorf("usage: CREATE <cache_name> <capacity>")
 		}
 		cmd.mapTitle = string(args[1])
-		cmd.mapKey = hash(args[1])
+		cmd.mapKey = hash[K](args[1])
 		cmd.value = []byte(args[2])
 
 	case Cmd_LIST:
@@ -81,20 +86,20 @@ func Parse(input []byte) (*Command, error) {
 		if len(args) < 2 {
 			return nil, fmt.Errorf("usage: %s <cache_name> [args...]", cmd.operation)
 		}
-		cmd.mapKey = hash(args[1])
+		cmd.mapKey = hash[K](args[1])
 
 		switch cmd.operation {
 		case Cmd_SET:
 			if len(args) < 4 {
 				return nil, fmt.Errorf("usage: SET <cache_name> <key> <value>")
 			}
-			cmd.key = hash(args[2])
+			cmd.key = hash[K](args[2])
 			cmd.value = bytes.Join(args[3:], []byte(" "))
 		case Cmd_GET, Cmd_DEL:
 			if len(args) != 3 {
 				return nil, fmt.Errorf("usage: %s <cache_name> <key>", cmd.operation)
 			}
-			cmd.key = hash(args[2])
+			cmd.key = hash[K](args[2])
 		}
 
 	case Cmd_HELP, Cmd_CLEAR_ALL:
@@ -107,14 +112,14 @@ func Parse(input []byte) (*Command, error) {
 	return cmd, nil
 }
 
-func Execute(cm *src.CacheManager, cmd *Command) (string, error) {
+func Execute[U src.Uints, K src.Uints, V ~[]byte](cm *src.CacheManager[U, K, V], cmd *Command[K, V]) (string, error) {
 	switch cmd.operation {
 	case Cmd_CREATE:
 		capacity, err := strconv.ParseUint(string(cmd.value), 10, 8)
 		if err != nil {
 			return "", fmt.Errorf("invalid capacity: %s", cmd.value)
 		}
-		cm.CreateCache(cmd.mapTitle, cmd.mapKey, uint8(capacity))
+		cm.CreateCache(cmd.mapTitle, cmd.mapKey, U(capacity))
 		return "OK", nil
 
 	case Cmd_DESTROY:

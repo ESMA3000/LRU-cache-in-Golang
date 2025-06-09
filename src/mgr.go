@@ -2,42 +2,38 @@ package src
 
 import "fmt"
 
-type CacheManager struct {
-	caches map[uint64]*LRUMap
-}
-
-func NewCacheManager() *CacheManager {
-	return &CacheManager{
-		caches: make(map[uint64]*LRUMap),
+func NewCacheManager[U, K Uints, V any]() *CacheManager[U, K, V] {
+	return &CacheManager[U, K, V]{
+		caches: make(map[K]*LRUMap[U, K, V]),
 	}
 }
 
-func (cm *CacheManager) CreateCache(title string, key uint64, capacity uint8) {
-	var cache *LRUMap = InitLRUMap(title, capacity)
+func (cm *CacheManager[U, K, V]) CreateCache(title string, key K, capacity U) {
+	var cache *LRUMap[U, K, V] = InitLRUMap[U, K, V](title, capacity)
 	cm.caches[key] = cache
 }
 
-func (cm *CacheManager) GetCache(name uint64) *LRUMap {
+func (cm *CacheManager[U, K, V]) GetCache(name K) *LRUMap[U, K, V] {
 	if cache, exists := cm.caches[name]; exists {
 		return cache
 	}
 	return nil
 }
 
-func (cm *CacheManager) DestroyCache(name uint64) {
+func (cm *CacheManager[U, K, V]) DestroyCache(name K) {
 	if cache, exists := cm.caches[name]; exists {
 		cache.Clear()
 		delete(cm.caches, name)
 	}
 }
 
-func (cm *CacheManager) ClearAllCaches() {
+func (cm *CacheManager[U, K, V]) ClearAllCaches() {
 	for name := range cm.caches {
 		cm.DestroyCache(name)
 	}
 }
 
-func (cm *CacheManager) ListCaches() []string {
+func (cm *CacheManager[U, K, V]) ListCaches() []string {
 	var names []string = make([]string, 0, len(cm.caches))
 	for m := range cm.caches {
 		cache := cm.caches[m]

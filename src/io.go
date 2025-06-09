@@ -26,17 +26,17 @@ func LogError(e error) {
 	logger.Println(e)
 }
 
-func (m *LRUMap) Print() string {
+func (m *LRUMap[U, K, V]) Print() string {
 	var builder strings.Builder
 	nodes := m.Iterator(false)
 	for i, node := range nodes {
-		builder.WriteString(fmt.Sprintf("Index: %d, Value: %s\n",
-			i, string(node.value)))
+		builder.WriteString(fmt.Sprintf("Index: %d, Value: %v\n",
+			i, node.value))
 	}
 	return builder.String()
 }
 
-func (m *LRUMap) PrintNodes() {
+func (m *LRUMap[U, K, V]) PrintNodes() {
 	for _, node := range m.Iterator(false) {
 		fmt.Println(node)
 	}

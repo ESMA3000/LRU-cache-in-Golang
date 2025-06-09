@@ -8,7 +8,7 @@ import (
 	"os"
 )
 
-func Cli(ctx context.Context, mgr *src.CacheManager) {
+func Cli[U, K src.Uints, V ~[]byte](ctx context.Context, mgr *src.CacheManager[U, K, V]) {
 	scanner := bufio.NewScanner(os.Stdin)
 	fmt.Println("LRU Engine CLI")
 	for {
@@ -21,7 +21,7 @@ func Cli(ctx context.Context, mgr *src.CacheManager) {
 			}
 			var input string = scanner.Text()
 
-			cmd, err := Parse([]byte(input))
+			cmd, err := Parse[K, V]([]byte(input))
 			if err != nil {
 				fmt.Println("Error:", err)
 				continue
