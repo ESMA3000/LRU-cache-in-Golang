@@ -1,24 +1,25 @@
 package api
 
 import (
+	"fmt"
 	"lrue/src"
 	"testing"
 )
 
 func TestExecute(t *testing.T) {
-	cm := src.NewCacheManager()
+	cm := src.NewCacheManager[uint8, uint64, []byte]()
 	tests := []struct {
 		name    string
-		cmd     *Command
+		cmd     *Command[uint64, []byte]
 		want    string
 		wantErr bool
 	}{
 		{
 			name: "CREATE cache",
-			cmd: &Command{
+			cmd: &Command[uint64, []byte]{
 				operation: Cmd_CREATE,
 				mapTitle:  "test-cache",
-				mapKey:    hash([]byte("test-cache")),
+				mapKey:    hash[uint64]([]byte("test-cache")),
 				value:     []byte("5"),
 			},
 			want:    "OK",
@@ -26,10 +27,10 @@ func TestExecute(t *testing.T) {
 		},
 		{
 			name: "SET command",
-			cmd: &Command{
+			cmd: &Command[uint64, []byte]{
 				operation: Cmd_SET,
-				mapKey:    hash([]byte("test-cache")),
-				key:       hash([]byte("test")),
+				mapKey:    hash[uint64]([]byte("test-cache")),
+				key:       hash[uint64]([]byte("test")),
 				value:     []byte("value"),
 			},
 			want:    "OK",
@@ -37,64 +38,64 @@ func TestExecute(t *testing.T) {
 		},
 		{
 			name: "GET existing key",
-			cmd: &Command{
+			cmd: &Command[uint64, []byte]{
 				operation: Cmd_GET,
-				mapKey:    hash([]byte("test-cache")),
-				key:       hash([]byte("test")),
+				mapKey:    hash[uint64]([]byte("test-cache")),
+				key:       hash[uint64]([]byte("test")),
 			},
 			want:    "value",
 			wantErr: false,
 		},
 		{
 			name: "GET non-existing key",
-			cmd: &Command{
+			cmd: &Command[uint64, []byte]{
 				operation: Cmd_GET,
-				mapKey:    hash([]byte("test-cache")),
-				key:       hash([]byte("nonexistent")),
+				mapKey:    hash[uint64]([]byte("test-cache")),
+				key:       hash[uint64]([]byte("nonexistent")),
 			},
 			want:    "",
 			wantErr: true,
 		},
 		{
 			name: "GET from non-existing cache",
-			cmd: &Command{
+			cmd: &Command[uint64, []byte]{
 				operation: Cmd_GET,
-				mapKey:    hash([]byte("nonexistent-cache")),
-				key:       hash([]byte("test")),
+				mapKey:    hash[uint64]([]byte("nonexistent-cache")),
+				key:       hash[uint64]([]byte("test")),
 			},
 			want:    "",
 			wantErr: true,
 		},
-		/* 		{
+		{
 			name: "LIST caches",
-			cmd: &Command{
+			cmd: &Command[uint64, []byte]{
 				operation: Cmd_LIST,
 			},
-			want:    "test-cache\nKey: 18007334074686647077, Value: [118 97 108 117 101]",
+			want:    fmt.Sprintf("test-cache\nKey: %d, Value: %v", hash[uint64]([]byte("test")), []byte("value")),
 			wantErr: false,
-		}, */
+		},
 		{
 			name: "DEL command",
-			cmd: &Command{
+			cmd: &Command[uint64, []byte]{
 				operation: Cmd_DEL,
-				mapKey:    hash([]byte("test-cache")),
-				key:       hash([]byte("test")),
+				mapKey:    hash[uint64]([]byte("test-cache")),
+				key:       hash[uint64]([]byte("test")),
 			},
 			want:    "OK",
 			wantErr: false,
 		},
 		{
 			name: "DESTROY cache",
-			cmd: &Command{
+			cmd: &Command[uint64, []byte]{
 				operation: Cmd_DESTROY,
-				mapKey:    hash([]byte("test-cache")),
+				mapKey:    hash[uint64]([]byte("test-cache")),
 			},
 			want:    "OK",
 			wantErr: false,
 		},
 		{
 			name: "CLEAR_ALL caches",
-			cmd: &Command{
+			cmd: &Command[uint64, []byte]{
 				operation: Cmd_CLEAR_ALL,
 			},
 			want:    "OK",

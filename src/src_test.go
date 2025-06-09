@@ -10,11 +10,11 @@ import (
 func TestSrc(t *testing.T) {
 	t.Run("LRUMap", func(t *testing.T) {
 		t.Run("InitLRUMap", func(t *testing.T) {
-			cache := InitLRUMap("test", 2)
+			cache := InitLRUMap[uint8, uint64, []byte]("test", 2)
 			if cache.capacity != 2 {
 				t.Errorf("Expected capacity 2, got %d", cache.capacity)
 			}
-			if cache.headIdx != NoIdx || cache.tailIdx != NoIdx {
+			if cache.headIdx != cache.NoIdx || cache.tailIdx != cache.NoIdx {
 				t.Error("Expected NoIdx for head and tail")
 			}
 			if len(cache.nodes) != 2 {
@@ -23,20 +23,21 @@ func TestSrc(t *testing.T) {
 		})
 
 		t.Run("newNode", func(t *testing.T) {
-			node := newNode(1, []byte("test"))
+			cache := InitLRUMap[uint8, uint64, []byte]("test", 2)
+			node := cache.newNode(1, []byte("test"))
 			if node.key != 1 {
 				t.Errorf("Expected key 1, got %d", node.key)
 			}
 			if string(node.value) != "test" {
 				t.Errorf("Expected value 'test', got %s", string(node.value))
 			}
-			if node.prevIdx != NoIdx || node.nextIdx != NoIdx {
+			if node.prevIdx != cache.NoIdx || node.nextIdx != cache.NoIdx {
 				t.Error("Expected NoIdx for prev and next indices")
 			}
 		})
 
 		t.Run("removeNode", func(t *testing.T) {
-			cache := InitLRUMap("test", 2)
+			cache := InitLRUMap[uint8, uint64, []byte]("test", 2)
 			cache.Put(1, []byte("one"))
 			if idx, ok := cache.keyToIdx[1]; ok {
 				node := cache.getNodePtr(idx)
@@ -50,14 +51,14 @@ func TestSrc(t *testing.T) {
 		})
 
 		t.Run("setHead", func(t *testing.T) {
-			cache := InitLRUMap("test", 2)
+			cache := InitLRUMap[uint8, uint64, []byte]("test", 2)
 			cache.Put(1, []byte("one"))
 			cache.Put(2, []byte("two"))
 
 			firstIdx := cache.headIdx
 			secondIdx := cache.nodes[firstIdx].nextIdx
 
-			if firstIdx == NoIdx || secondIdx == NoIdx {
+			if firstIdx == cache.NoIdx || secondIdx == cache.NoIdx {
 				t.Error("Expected valid indices for head and next node")
 			}
 
@@ -71,7 +72,7 @@ func TestSrc(t *testing.T) {
 		})
 
 		t.Run("removeTail", func(t *testing.T) {
-			cache := InitLRUMap("test", 2)
+			cache := InitLRUMap[uint8, uint64, []byte]("test", 2)
 			cache.Put(1, []byte("one"))
 			cache.Put(2, []byte("two"))
 			oldTailIdx, ok := cache.removeTail()
@@ -81,7 +82,7 @@ func TestSrc(t *testing.T) {
 		})
 
 		t.Run("Put", func(t *testing.T) {
-			cache := InitLRUMap("test", 2)
+			cache := InitLRUMap[uint8, uint64, []byte]("test", 2)
 			cache.Put(1, []byte("one"))
 			if cache.Length() != 1 {
 				t.Error("Expected length 1")
@@ -92,7 +93,7 @@ func TestSrc(t *testing.T) {
 		})
 
 		t.Run("GetNode", func(t *testing.T) {
-			cache := InitLRUMap("test", 2)
+			cache := InitLRUMap[uint8, uint64, []byte]("test", 2)
 			cache.Put(1, []byte("one"))
 			node := cache.GetNode(1)
 			if node == nil || node.key != 1 {
@@ -101,7 +102,7 @@ func TestSrc(t *testing.T) {
 		})
 
 		t.Run("Get", func(t *testing.T) {
-			cache := InitLRUMap("test", 2)
+			cache := InitLRUMap[uint8, uint64, []byte]("test", 2)
 			cache.Put(1, []byte("one"))
 			val := cache.Get(1)
 			if string(val) != "one" {
@@ -110,7 +111,7 @@ func TestSrc(t *testing.T) {
 		})
 
 		t.Run("Put Update", func(t *testing.T) {
-			cache := InitLRUMap("test", 2)
+			cache := InitLRUMap[uint8, uint64, []byte]("test", 2)
 			cache.Put(1, []byte("one"))
 			cache.Put(1, []byte("new"))
 			if string(cache.Get(1)) != "new" {
@@ -119,7 +120,7 @@ func TestSrc(t *testing.T) {
 		})
 
 		t.Run("Eject", func(t *testing.T) {
-			cache := InitLRUMap("test", 2)
+			cache := InitLRUMap[uint8, uint64, []byte]("test", 2)
 			cache.Put(1, []byte("one"))
 			cache.Eject(1)
 			if cache.Get(1) != nil {
@@ -128,7 +129,7 @@ func TestSrc(t *testing.T) {
 		})
 
 		t.Run("Length", func(t *testing.T) {
-			cache := InitLRUMap("test", 2)
+			cache := InitLRUMap[uint8, uint64, []byte]("test", 2)
 			cache.Put(1, []byte("one"))
 			if cache.Length() != 1 {
 				t.Errorf("Expected length 1, got %d", cache.Length())
@@ -136,7 +137,7 @@ func TestSrc(t *testing.T) {
 		})
 
 		t.Run("Clear", func(t *testing.T) {
-			cache := InitLRUMap("test", 2)
+			cache := InitLRUMap[uint8, uint64, []byte]("test", 2)
 			cache.Put(1, []byte("one"))
 			cache.Put(2, []byte("two"))
 			cache.Clear()
@@ -146,7 +147,7 @@ func TestSrc(t *testing.T) {
 		})
 
 		t.Run("Iterator", func(t *testing.T) {
-			cache := InitLRUMap("test", 3)
+			cache := InitLRUMap[uint8, uint64, []byte]("test", 3)
 			cache.Put(1, []byte("one"))
 			cache.Put(2, []byte("two"))
 			cache.Put(3, []byte("three"))
@@ -181,40 +182,40 @@ func TestSrc(t *testing.T) {
 		})
 
 		t.Run("CapacityLimit", func(t *testing.T) {
-			cache := InitLRUMap("test", 255)
+			cache := InitLRUMap[uint8, uint64, []byte]("test", 255)
 			if cache.capacity != 254 {
 				t.Errorf("Expected capacity to be limited to 254, got %d", cache.capacity)
 			}
 		})
 
 		t.Run("NodeLinking", func(t *testing.T) {
-			cache := InitLRUMap("test", 3)
+			cache := InitLRUMap[uint8, uint64, []byte]("test", 3)
 			cache.Put(1, []byte("one"))
 			cache.Put(2, []byte("two"))
 			cache.Put(3, []byte("three"))
 
 			// Test head links
-			if cache.headIdx == NoIdx {
+			if cache.headIdx == cache.NoIdx {
 				t.Error("Head should not be NoIdx")
 			}
 			headNode := cache.getNodePtr(cache.headIdx)
-			if headNode.prevIdx != NoIdx {
+			if headNode.prevIdx != cache.NoIdx {
 				t.Error("Head's prev should be NoIdx")
 			}
 
 			// Test tail links
-			if cache.tailIdx == NoIdx {
+			if cache.tailIdx == cache.NoIdx {
 				t.Error("Tail should not be NoIdx")
 			}
 			tailNode := cache.getNodePtr(cache.tailIdx)
-			if tailNode.nextIdx != NoIdx {
+			if tailNode.nextIdx != cache.NoIdx {
 				t.Error("Tail's next should be NoIdx")
 			}
 		})
 	})
 	t.Run("LRUMap", func(t *testing.T) {
 		t.Run("TestLRUMapConcurrency", func(t *testing.T) {
-			cache := InitLRUMap("test", 16)
+			cache := InitLRUMap[uint8, uint64, []byte]("test", 16)
 			var wg sync.WaitGroup
 			iterations := 10000
 
@@ -245,14 +246,39 @@ func TestSrc(t *testing.T) {
 
 	})
 }
+func TestCacheManagerUints(t *testing.T) {
+	t.Run("uint16", func(t *testing.T) {
+		cm := NewCacheManager[uint16, uint64, []byte]()
+		cm.CreateCache("test", 1, ^uint16(0))
+		cache := cm.GetCache(1)
+		if cm.caches == nil {
+			t.Error("Expected cache to be created")
+		}
+		if cache == nil {
+			t.Error("Expected to get cache")
+		}
+		cache.Clear()
+	})
 
+	t.Run("uint32", func(t *testing.T) {
+		cm := NewCacheManager[uint32, uint64, []byte]()
+		cm.CreateCache("test", 1, 1000000) // Use a reasonable capacity instead of max uint32
+		cache := cm.GetCache(1)
+		if cm.caches == nil {
+			t.Error("Expected cache to be created")
+		}
+		if cache == nil {
+			t.Error("Expected to get cache")
+		}
+		cache.Clear()
+	})
+}
 func BenchmarkLRUMap(b *testing.B) {
-	// Test different cache sizes
 	sizes := []uint8{4, 8, 16, 64, 256 - 1}
 	operations := []int{100, 1000, 10000}
 
 	for _, size := range sizes {
-		cache := InitLRUMap("test", size)
+		cache := InitLRUMap[uint8, uint64, []byte]("test", size)
 		data := []byte("test-value-that-is-larger-than-32-bytes-to-simulate-real-world-data")
 
 		// Basic operations
@@ -350,14 +376,13 @@ func BenchmarkLRUMap(b *testing.B) {
 		})
 	}
 }
-
 func BenchmarkLRUMapHitRatio(b *testing.B) {
 	sizes := []uint8{4, 16, 64}
 	ratios := []int{25, 50, 75, 95} // hit ratios in percentage
 	data := []byte("test-value-that-is-larger-than-32-bytes-to-simulate-real-world-data")
 
 	for _, size := range sizes {
-		cache := InitLRUMap("test", size)
+		cache := InitLRUMap[uint8, uint64, []byte]("test", size)
 
 		// Warm up cache to full capacity
 		for i := uint64(0); i < uint64(size); i++ {

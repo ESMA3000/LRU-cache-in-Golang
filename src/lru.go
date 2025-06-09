@@ -126,7 +126,7 @@ func (m *LRUMap[U, K, V]) Put(key K, value V) {
 	if !ok {
 		if tailIdx, ok := m.removeTail(); ok {
 			delete(m.keyToIdx, m.nodes[tailIdx].key)
-			idx = tailIdx // Just reuse the index directly without adding to freeList
+			idx = tailIdx
 		}
 	}
 
