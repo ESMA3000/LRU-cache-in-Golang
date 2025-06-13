@@ -1,4 +1,4 @@
-# LRU Cache Implementation in Go
+# Array based LRU Cache Implementation in Go
 
 A Least Recently Used (LRU) cache implementation with both CLI and TCP server interfaces.
 
@@ -44,10 +44,21 @@ Cache Operations:
 
 ## Implementation Details
 
-- Multiple independent cache instances
-- Each cache uses a doubly-linked list to maintain access order
-- Most recent items are moved to the head of the list
-- Least recently used items are removed when capacity is reached
+- Uses an array-based storage with index recycling
+- Implements a free list for efficient memory management
+- When cache is full:
+  - Evicts least recently used item
+  - Directly reuses the freed slot for new entries
+  - No additional memory allocation during eviction
+- Double-linked list for O(1) LRU operations
+- Thread-safe with minimal lock contention using sync.RWMutex
+
+## Performance Considerations
+
+- Optimized eviction process with direct slot reuse
+- No memory allocation during eviction cycles
+- Efficient index management using free list
+- Minimal pointer chasing with array-based storage
 
 ## License
 
